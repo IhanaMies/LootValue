@@ -1,0 +1,111 @@
+{
+  "delayStartInSeconds": 7,
+  "updateVioletItemBackground": false,
+  "usePerSlotPricingForBackgrounds": true,
+  "traderPriceMultiplier": 0.55,
+  "fleaPriceMultiplier": 0.77,
+  "showTraderPricesFirst": true,
+  "useCustomBackgroundColours": true,
+  "useFleaPricesForBackground": false,
+  "autoUseFleaPricing": {
+    "description": "Displays the appropriate flea value background colour when the flea value is much greater than the trader value",
+    "enabled": true,
+    "fleaToTraderValueThresholdRatio": 2
+  },
+  "traderValueBackgroundColours": [
+    {
+      "minValue": 0,
+      "maxValue": 2999,
+      "colour": "orange"
+    },
+    {
+      "minValue": 3000,
+      "maxValue": 5999,
+      "colour": "red"
+    },
+    {
+      "minValue": 6000,
+      "maxValue": 8999,
+      "colour": "yellow"
+    },
+    {
+      "minValue": 9000,
+      "maxValue": 10999,
+      "colour": "green"
+    },
+    {
+      "minValue": 11000,
+      "maxValue": 12999,
+      "colour": "blue"
+    },
+    {
+      "minValue": 13000,
+      "maxValue": 100000000,
+      "colour": "violet"
+    }
+  ],
+  "fleaValueBackgroundColours": [
+    {
+      "minValue": 0,
+      "maxValue": 4999,
+      "colour": "orange"
+    },
+    {
+      "minValue": 5000,
+      "maxValue": 8999,
+      "colour": "red"
+    },
+    {
+      "minValue": 9000,
+      "maxValue": 11999,
+      "colour": "yellow"
+    },
+    {
+      "minValue": 12000,
+      "maxValue": 15999,
+      "colour": "green"
+    },
+    {
+      "minValue": 16000,
+      "maxValue": 19999,
+      "colour": "blue"
+    },
+    {
+      "minValue": 20000,
+      "maxValue": 100000000,
+      "colour": "violet"
+    }
+  ],
+  "inventorySlotBackgroundColours": [
+    {
+      "minValue": 0,
+      "maxValue": 12,
+      "colour": "orange"
+    },
+    {
+      "minValue": 13,
+      "maxValue": 19,
+      "colour": "red"
+    },
+    {
+      "minValue": 20,
+      "maxValue": 29,
+      "colour": "yellow"
+    },
+    {
+      "minValue": 30,
+      "maxValue": 34,
+      "colour": "green"
+    },
+    {
+      "minValue": 35,
+      "maxValue": 39,
+      "colour": "blue"
+    },
+    {
+      "minValue": 40,
+      "maxValue": 999,
+      "colour": "violet"
+    }
+  ]
+}
