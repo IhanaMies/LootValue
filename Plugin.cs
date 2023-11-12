@@ -333,6 +333,9 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				}
 				else if (button == PointerEventData.InputButton.Right)
 				{
+					if (!item.MarkedAsSpawnedInSession)
+						return;
+
 					double? fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
 
 					if (!LootValueMod.IgnoreFleaMaxOfferCount.Value && Session.RagFair.MyOffersCount >= Session.RagFair.GetMaxOffersCount(Session.RagFair.MyRating))
