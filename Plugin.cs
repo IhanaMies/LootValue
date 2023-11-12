@@ -166,7 +166,10 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 					foreach (TraderClass trader in Session.Traders)
 					{
-						if (GetTraderOffer(mod, trader) is TraderOffer offer)
+                        if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
+							continue;						
+
+                        if (GetTraderOffer(mod, trader) is TraderOffer offer)
 						{
 							if (tempHighestOffer == null || offer.Price > tempHighestOffer.Price)
 								tempHighestOffer = offer;
@@ -196,9 +199,14 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			else
 			{
 				foreach (TraderClass trader in Session.Traders)
+				{
+					if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
+						continue;
+
 					if (GetTraderOffer(item, trader) is TraderOffer offer)
 						if (highestOffer == null || offer.Price > highestOffer.Price)
 							highestOffer = offer;
+				}
 			}
 
 			return highestOffer;
