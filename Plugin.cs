@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using static UnityEngine.EventSystems.EventTrigger;
 using static System.Collections.Specialized.BitVector32;
+using System.Threading.Tasks;
 
 namespace LootValue
 {
@@ -77,12 +78,17 @@ namespace LootValue
 		internal static ConfigEntry<string> CustomColours;
 		internal static ConfigEntry<bool> EnableQuickSell;
 		internal static ConfigEntry<bool> EnableFleaQuickSell;
+		internal static ConfigEntry<bool> OneButtonQuickSell;
+		internal static ConfigEntry<bool> OneButtonQuickSellFlea;
+
 		internal static ConfigEntry<bool> OnlyShowTotalValue;
 		internal static ConfigEntry<bool> ShowFleaPriceBeforeAccess;
 		internal static ConfigEntry<bool> IgnoreFleaMaxOfferCount;
 
 		private void SetupConfig()
 		{
+			OneButtonQuickSell = Config.Bind("Quick Sell", "One button quick sell", false);
+			OneButtonQuickSellFlea = Config.Bind("Quick Sell", "One button quick only. Sell FIR item to trader if flea orders are full", false);
 			OnlyShowTotalValue = Config.Bind("Quick Sell", "Only show total value", false);
 			EnableQuickSell = Config.Bind("Quick Sell", "Enable quick sell", true, "Hold Left Alt + Left Shift while left clicking an item to quick sell either to flea (if enabled) or trader which ever has better value");
 			EnableFleaQuickSell = Config.Bind("Quick Sell", "Enable flea quick sell", true);
@@ -303,58 +309,131 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		{
 			Item item = __instance.Item;
 
-			if (LootValueMod.EnableQuickSell.Value
-				&& Input.GetKey(KeyCode.LeftShift)
-				&& Input.GetKey(KeyCode.LeftAlt)
-				&& !GClass1716.InRaid
-				&& item != null)
+			if (LootValueMod.EnableQuickSell.Value && !GClass1716.InRaid && item != null)
 			{
-				if (button == PointerEventData.InputButton.Left)
+				if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.LeftAlt))
 				{
-					try
+					//One button quicksell
+					if (LootValueMod.OneButtonQuickSell.Value)
 					{
-						TraderOffer bestTraderOffer = GetBestTraderOffer(item);
-
-						if (bestTraderOffer != null)
+						if (button == PointerEventData.InputButton.Left)
 						{
-							TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
-							await traderClass.RefreshAssortment(true, true);
+							TraderOffer bestTraderOffer = GetBestTraderOffer(item);
+							double? fleaPrice = null;
 
-							TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-							tacc.PrepareToSell(__instance.Item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-							tacc.Sell();
+							if (item.MarkedAsSpawnedInSession)
+								fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
+
+							if (bestTraderOffer != null)
+							{
+								if (fleaPrice.HasValue && fleaPrice.Value > bestTraderOffer.Price)
+								{
+									if (!HasFleaSlotToSell(item))
+									{
+										if (LootValueMod.OneButtonQuickSellFlea.Value)
+										{
+											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached. Sell to trader");
+
+											TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
+											await traderClass.RefreshAssortment(true, true);
+
+											TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+											tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+											tacc.Sell();
+										}
+										else
+										{
+											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
+										}
+
+										return;
+									}
+
+									var g = new GClass1711();
+									g.count = fleaPrice.Value - 1; //undercut by 1 ruble
+									g._tpl = "5449016a4bdc2d6f028b456f"; //id of ruble
+
+									GClass1711[] gs = new GClass1711[1];
+									gs[0] = g;
+									Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
+								}
+								else
+								{
+									TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
+									await traderClass.RefreshAssortment(true, true);
+
+									TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+									tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+									tacc.Sell();
+								}
+							}
 						}
 					}
-					catch (Exception ex)
+					else //Two button quicksell
 					{
-						logger.LogInfo($"Something fucked up: {ex.Message}");
-						logger.LogInfo($"{ex.InnerException.Message}");
+						if (button == PointerEventData.InputButton.Left)
+						{
+							await SellToTrader(item);
+						}
+						else if (button == PointerEventData.InputButton.Right)
+						{
+							SellToFlea(item);
+						}
 					}
 				}
-				else if (button == PointerEventData.InputButton.Right)
+			}
+		}
+
+		static async Task SellToTrader(Item item)
+		{
+			try
+			{
+				TraderOffer bestTraderOffer = GetBestTraderOffer(item);
+
+				if (bestTraderOffer != null)
 				{
-					if (!item.MarkedAsSpawnedInSession)
-						return;
+					TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
+					await traderClass.RefreshAssortment(true, true);
 
-					double? fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
-
-					if (!LootValueMod.IgnoreFleaMaxOfferCount.Value && Session.RagFair.MyOffersCount >= Session.RagFair.GetMaxOffersCount(Session.RagFair.MyRating))
-					{
-						NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
-						return;
-					}
-
-					if (Session.RagFair.Available && fleaPrice.HasValue)
-					{
-						var g = new GClass1711();
-						g.count = fleaPrice.Value - 1; //undercut by 1 ruble
-						g._tpl = "5449016a4bdc2d6f028b456f"; //id of ruble
-
-						GClass1711[] gs = new GClass1711[1];
-						gs[0] = g;
-						Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
-					}
+					TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+					tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+					tacc.Sell();
 				}
+			}
+			catch (Exception ex)
+			{
+				logger.LogInfo($"Something fucked up: {ex.Message}");
+				logger.LogInfo($"{ex.InnerException.Message}");
+			}
+		}
+
+		static bool HasFleaSlotToSell(Item item)
+		{
+			return LootValueMod.IgnoreFleaMaxOfferCount.Value || Session.RagFair.MyOffersCount < Session.RagFair.GetMaxOffersCount(Session.RagFair.MyRating);
+		}
+
+		static void SellToFlea(Item item)
+		{
+			if (!item.MarkedAsSpawnedInSession || !Session.RagFair.Available)
+				return;
+
+			double? fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
+
+			if (!HasFleaSlotToSell(item))
+			{
+				NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
+				return;
+			}
+
+			if (Session.RagFair.Available && fleaPrice.HasValue)
+			{
+				var g = new GClass1711();
+				g.count = fleaPrice.Value - 1; //undercut by 1 ruble
+				g._tpl = "5449016a4bdc2d6f028b456f"; //id of ruble
+
+				GClass1711[] gs = new GClass1711[1];
+				gs[0] = g;
+				Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
 			}
 		}
 	}
