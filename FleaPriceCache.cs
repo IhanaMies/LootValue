@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using static LootValue.Globals;
+using static System.Collections.Specialized.BitVector32;
 
 namespace LootValue
 {
@@ -16,6 +17,11 @@ namespace LootValue
 
 		public static double? FetchPrice(string templateId)
 		{
+			bool fleaAvailable = Session.RagFair.Available || LootValueMod.ShowFleaPriceBeforeAccess.Value;
+
+			if (!fleaAvailable || !LootValueMod.EnableFleaQuickSell.Value)
+				return null;
+
 			if (cache.ContainsKey(templateId))
 			{
 				double secondsSinceLastUpdate = (DateTime.Now - cache[templateId].lastUpdate).TotalSeconds;

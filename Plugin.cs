@@ -1,26 +1,22 @@
 ﻿using System;
-using EFT.UI.DragAndDrop;
 using System.Reflection;
+using EFT;
+using EFT.UI.DragAndDrop;
 using EFT.InventoryLogic;
 using EFT.UI;
-using BepInEx;
 using Aki.Reflection.Patching;
 using Aki.Reflection.Utils;
-
 using CurrencyUtil = GClass2334;
 using static LootValue.Globals;
-using Comfort.Common;
-using EFT;
-using System.Collections.Generic;
-using EFT.HealthSystem;
+using BepInEx;
 using BepInEx.Logging;
-using static System.Collections.Specialized.BitVector32;
+using BepInEx.Configuration;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Aki.Common.Http;
+using System.Collections.Generic;
 using Newtonsoft.Json;
-using System.Threading.Tasks;
-using EFT.UI.Ragfair;
+using static UnityEngine.EventSystems.EventTrigger;
+using static System.Collections.Specialized.BitVector32;
 
 namespace LootValue
 {
@@ -30,16 +26,82 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "1.0.0";
+        public const string pluginVersion = "1.1.0";
 
 		private void Awake()
 		{
+			Config.SaveOnConfigSet = true;
+
+			logger = Logger;
+
+			SetupConfig();
+
 			new TraderPatch().Enable();
-			//new ItemShowTooltipPatch().Enable();
 			new ShowTooltipPatch().Enable();
 			new GridItemOnPointerEnterPatch().Enable();
 			new GridItemOnPointerExitPatch().Enable();
 			new ItemViewOnClickPatch().Enable();
+
+			Config.SettingChanged += Config_SettingChanged;
+		}
+
+		private void Config_SettingChanged(object sender, SettingChangedEventArgs e)
+		{
+			ConfigEntryBase entry = e.ChangedSetting;
+
+			logger.LogInfo($"Settings changed - {entry.Definition.Section}:{entry.Definition.Key}");
+
+			if (entry.Definition.Key == "Custom colours")
+			{
+				if (UseCustomColours.Value)
+				{
+					logger.LogInfo($"Read colors");
+					SlotColoring.ReadColors(CustomColours.Value);
+				}
+			}
+
+			if (entry.Definition.Key == "Custom colours" || entry.Definition.Key == "Use custom colours")
+			{
+				if (UseCustomColours.Value)
+				{
+					SlotColoring.ReadColors(CustomColours.Value);
+				}
+				else
+				{
+					SlotColoring.UseDefaultColors();
+				}
+			}
+		}
+
+		internal static ConfigEntry<bool> UseCustomColours;
+		internal static ConfigEntry<string> CustomColours;
+		internal static ConfigEntry<bool> EnableQuickSell;
+		internal static ConfigEntry<bool> EnableFleaQuickSell;
+		internal static ConfigEntry<bool> OnlyShowTotalValue;
+		internal static ConfigEntry<bool> ShowFleaPriceBeforeAccess;
+		internal static ConfigEntry<bool> IgnoreFleaMaxOfferCount;
+
+		private void SetupConfig()
+		{
+			OnlyShowTotalValue = Config.Bind("Quick Sell", "Only show total value", false);
+			EnableQuickSell = Config.Bind("Quick Sell", "Enable quick sell", true, "Hold Left Alt + Left Shift while left clicking an item to quick sell either to flea (if enabled) or trader which ever has better value");
+			EnableFleaQuickSell = Config.Bind("Quick Sell", "Enable flea quick sell", true);
+			ShowFleaPriceBeforeAccess = Config.Bind("Flea", "Show flea price before access", false);
+			IgnoreFleaMaxOfferCount = Config.Bind("Flea", "Ignore flea max offer count", false);
+
+			UseCustomColours = Config.Bind("Colours", "Use custom colours", false);
+			CustomColours = Config.Bind("Colours", "Custom colours", "[5000:#ff0000],[10000:#ffff00],[:#ffffff]",
+@"Colouring bound is marked as [int:hexcolor] e.q. [lower than this value : will be this hexcolor]
+The values should incremental from lower to higher and last value should be valueless.
+For example [5000:#ff0000],[10000:#ffff00],[:#ffffff] means three different bounds.
+Anything under 5000 rubles, will be red.
+Anything under 10000 rubles, will be yellow.
+The third is marked as the ultimate color. Anything over 10000 rubles would be white.
+"
+			);
+
+			if (UseCustomColours.Value)
+				SlotColoring.ReadColors(CustomColours.Value);
 		}
 	}
 
@@ -51,7 +113,6 @@ namespace LootValue
 		private static void PatchPostfix(ref TraderClass __instance)
 		{
 			__instance.UpdateSupplyData();
-			logger = Logger;
 		}
 	}
 
@@ -68,7 +129,7 @@ namespace LootValue
 	{
 		public static bool isStashItemHovered = false;
 		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
-		public static ManualLogSource logger;
+		public static ManualLogSource logger { get; set; }
 		public static Item hoveredItem;
 
 		public static TraderOffer GetBestTraderOffer(Item item)
@@ -242,30 +303,19 @@ namespace LootValue
 		{
 			Item item = __instance.Item;
 
-			if (button == PointerEventData.InputButton.Left
+			if (LootValueMod.EnableQuickSell.Value
 				&& Input.GetKey(KeyCode.LeftShift)
 				&& Input.GetKey(KeyCode.LeftAlt)
 				&& !GClass1716.InRaid
 				&& item != null)
 			{
-				try
+				if (button == PointerEventData.InputButton.Left)
 				{
-					TraderOffer bestTraderOffer = GetBestTraderOffer(item);
-					double? fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
-
-					if (bestTraderOffer != null)
+					try
 					{
-						if (fleaPrice.HasValue && fleaPrice.Value > bestTraderOffer.Price)
-						{
-							var g = new GClass1711();
-							g.count = fleaPrice.Value - 1; //undercut by 1 ruble
-							g._tpl = "5449016a4bdc2d6f028b456f"; //id of ruble
+						TraderOffer bestTraderOffer = GetBestTraderOffer(item);
 
-							GClass1711[] gs = new GClass1711[1];
-							gs[0] = g;
-							Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
-						}
-						else
+						if (bestTraderOffer != null)
 						{
 							TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
 							await traderClass.RefreshAssortment(true, true);
@@ -275,11 +325,32 @@ namespace LootValue
 							tacc.Sell();
 						}
 					}
+					catch (Exception ex)
+					{
+						logger.LogInfo($"Something fucked up: {ex.Message}");
+						logger.LogInfo($"{ex.InnerException.Message}");
+					}
 				}
-				catch (Exception ex)
+				else if (button == PointerEventData.InputButton.Right)
 				{
-					logger.LogInfo($"Something fucked up: {ex.Message}");
-					logger.LogInfo($"{ex.InnerException.Message}");
+					double? fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
+
+					if (!LootValueMod.IgnoreFleaMaxOfferCount.Value && Session.RagFair.MyOffersCount >= Session.RagFair.GetMaxOffersCount(Session.RagFair.MyRating))
+					{
+						NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
+						return;
+					}
+
+					if (Session.RagFair.Available && fleaPrice.HasValue)
+					{
+						var g = new GClass1711();
+						g.count = fleaPrice.Value - 1; //undercut by 1 ruble
+						g._tpl = "5449016a4bdc2d6f028b456f"; //id of ruble
+
+						GClass1711[] gs = new GClass1711[1];
+						gs[0] = g;
+						Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
+					}
 				}
 			}
 		}
@@ -367,10 +438,17 @@ namespace LootValue
 			else
 				highlightText = buyer;
 
-			text += $"<br>{highlightText}: <color={perSlotColor}>{valuePerSlotA.FormatNumber()}</color>";
+			if (LootValueMod.OnlyShowTotalValue.Value)
+			{
+				text += $"<br>{highlightText}: <color={perSlotColor}>{totalValue.FormatNumber()}</color>";
+			}
+			else
+			{
+				text += $"<br>{highlightText}: <color={perSlotColor}>{valuePerSlotA.FormatNumber()}</color>";
 
-			if (slots > 1)
-				text += $" Total: {totalValue.FormatNumber()}";
+				if (slots > 1)
+					text += $" Total: {totalValue.FormatNumber()}";
+			}
 		}
 	}
 }

@@ -35,7 +35,6 @@
     <Compile Include="FleaPriceCache.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="QuickSell.cs" />
     <Compile Include="SlotColoring.cs" />
   </ItemGroup>
   <ItemGroup>
