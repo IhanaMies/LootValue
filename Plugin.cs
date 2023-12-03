@@ -27,7 +27,7 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "1.1.0";
+        public const string pluginVersion = "1.2.2";
 
 		private void Awake()
 		{
@@ -312,10 +312,17 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 	{
 		protected override MethodBase GetTargetMethod() => typeof(GridItemView).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic);
 
+		private static HashSet<string> itemSells = new HashSet<string>();
+
 		[PatchPrefix]
 		static async void Prefix(GridItemView __instance, PointerEventData.InputButton button, Vector2 position, bool doubleClick)
 		{
 			Item item = __instance.Item;
+
+			if (itemSells.Contains(item.Id))
+				return;
+
+			itemSells.Add(item.Id);
 
 			if (LootValueMod.EnableQuickSell.Value && !GClass1716.InRaid && item != null)
 			{
@@ -342,37 +349,49 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 										{
 											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached. Sell to trader");
 
-											TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
-											await traderClass.RefreshAssortment(true, true);
+											using (TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId))
+											{
+												if (traderClass.CurrentAssortment == null)
+													await traderClass.RefreshAssortment(true, true);
 
-											TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-											tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-											tacc.Sell();
+												TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+												tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+												tacc.Sell();
+											}
 										}
 										else
 										{
 											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
 										}
 
+										itemSells.Remove(item.Id);
 										return;
 									}
 
-									var g = new GClass1711();
-									g.count = fleaPrice.Value - 1; //undercut by 1 ruble
-									g._tpl = "5449016a4bdc2d6f028b456f"; //id of ruble
+									var g = new GClass1711()
+									{
+										count = fleaPrice.Value - 1, //undercut by 1 ruble
+										_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
+									};
 
 									GClass1711[] gs = new GClass1711[1];
 									gs[0] = g;
 									Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
+
+									if (!HasFleaSlotToSell(item))
+										NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
 								}
 								else
 								{
-									TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
-									await traderClass.RefreshAssortment(true, true);
+									using (TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId))
+									{
+										if (traderClass.CurrentAssortment == null)
+											await traderClass.RefreshAssortment(true, true);
 
-									TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-									tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-									tacc.Sell();
+										TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+										tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+										tacc.Sell();
+									}
 								}
 							}
 						}
@@ -390,6 +409,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					}
 				}
 			}
+
+			itemSells.Remove(item.Id);
 		}
 
 		static async Task SellToTrader(Item item)
@@ -400,16 +421,23 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				if (bestTraderOffer != null)
 				{
-					TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
-					await traderClass.RefreshAssortment(true, true);
+					using (TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId))
+					{
+						if (traderClass.CurrentAssortment == null)
+							await traderClass.RefreshAssortment(true, true);
 
-					TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-					tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-					tacc.Sell();
+						TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+						tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+						tacc.Sell();
+					}
 				}
+
+				itemSells.Remove(item.Id);
 			}
 			catch (Exception ex)
 			{
+				itemSells.Remove(item.Id);
+
 				logger.LogInfo($"Something fucked up: {ex.Message}");
 				logger.LogInfo($"{ex.InnerException.Message}");
 			}
@@ -435,9 +463,11 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			if (Session.RagFair.Available && fleaPrice.HasValue)
 			{
-				var g = new GClass1711();
-				g.count = fleaPrice.Value - 1; //undercut by 1 ruble
-				g._tpl = "5449016a4bdc2d6f028b456f"; //id of ruble
+				var g = new GClass1711()
+				{
+					count = fleaPrice.Value - 1, //undercut by 1 ruble
+					_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
+				};
 
 				GClass1711[] gs = new GClass1711[1];
 				gs[0] = g;
@@ -514,7 +544,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				if (isFleaEligible)
 					SetText(fleaPricePerSlot, traderPricePerSlot, lowestFleaOffer, slots, ref text, "Flea");
 
-				hoveredItem = null;
+				//hoveredItem = null;
 			}
 		}
 

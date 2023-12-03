@@ -82,9 +82,6 @@ namespace LootValue
 		{
 			Colors.Clear();
 			Colors.AddRange(DefaultColors);
-
-			foreach (var c in Colors)
-				logger.LogInfo($"{c.UpperBound}:{c.HexColor}");
 		}
 
 		private static bool CheckConfigStringFormat(string configString)
@@ -157,25 +154,11 @@ namespace LootValue
 			{
 				if (valuePerSlot < bound.UpperBound)
 				{
-					logger.LogInfo($"bound: {bound.UpperBound}:{bound.HexColor}");
 					return bound.HexColor;
 				}
 			}
 
 			return "#ff00ff";
-
-			if (valuePerSlot < 5000)
-				return slotColors[ESlotColor.Red];
-			else if (valuePerSlot < 7500)
-				return slotColors[ESlotColor.Orange];
-			else if (valuePerSlot < 10000)
-				return slotColors[ESlotColor.Yellow];
-			else if (valuePerSlot < 15000)
-				return slotColors[ESlotColor.Green];
-			else if (valuePerSlot < 20000)
-				return slotColors[ESlotColor.Lightblue];
-
-			return slotColors[ESlotColor.Pink];
 		}
 	}
 }
