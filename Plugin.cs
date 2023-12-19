@@ -167,7 +167,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					foreach (TraderClass trader in Session.Traders)
 					{
                         if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
-							continue;						
+							continue;
 
                         if (GetTraderOffer(mod, trader) is TraderOffer offer)
 						{
@@ -349,15 +349,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 										{
 											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached. Sell to trader");
 
-											using (TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId))
-											{
-												if (traderClass.CurrentAssortment == null)
-													await traderClass.RefreshAssortment(true, true);
+											TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
+											if (traderClass.CurrentAssortment == null)
+												await traderClass.RefreshAssortment(true, true);
 
-												TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-												tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-												tacc.Sell();
-											}
+											TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+											tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+											tacc.Sell();
 										}
 										else
 										{
@@ -383,15 +381,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 								}
 								else
 								{
-									using (TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId))
-									{
-										if (traderClass.CurrentAssortment == null)
-											await traderClass.RefreshAssortment(true, true);
+									TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
+									if (traderClass.CurrentAssortment == null)
+										await traderClass.RefreshAssortment(true, true);
 
-										TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-										tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-										tacc.Sell();
-									}
+									TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+									tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+									tacc.Sell();
 								}
 							}
 						}
@@ -421,15 +417,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				if (bestTraderOffer != null)
 				{
-					using (TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId))
-					{
-						if (traderClass.CurrentAssortment == null)
-							await traderClass.RefreshAssortment(true, true);
+					TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
+					if (traderClass.CurrentAssortment == null)
+						await traderClass.RefreshAssortment(true, true);
 
-						TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-						tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-						tacc.Sell();
-					}
+					TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+					tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+					tacc.Sell();
 				}
 
 				itemSells.Remove(item.Id);
