@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 using static UnityEngine.EventSystems.EventTrigger;
 using static System.Collections.Specialized.BitVector32;
 using System.Threading.Tasks;
+using Comfort.Common;
 
 namespace LootValue
 {
@@ -27,7 +28,7 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "1.2.2";
+        public const string pluginVersion = "1.2.3";
 
 		private void Awake()
 		{
@@ -160,39 +161,15 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			if (item is Weapon weapon)
 			{
-				foreach (Mod mod in weapon.Mods)
+				foreach (TraderClass trader in Session.Traders)
 				{
-					TraderOffer tempHighestOffer = null;
+					if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
+						continue;
 
-					foreach (TraderClass trader in Session.Traders)
+					if (GetTraderOffer(weapon, trader) is TraderOffer offer)
 					{
-                        if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
-							continue;
-
-                        if (GetTraderOffer(mod, trader) is TraderOffer offer)
-						{
-							if (tempHighestOffer == null || offer.Price > tempHighestOffer.Price)
-								tempHighestOffer = offer;
-
-							//Item might be part of a weapon
-							//Try to get an offer from the template
-							if (tempHighestOffer == null)
-							{
-								Item tempItem = new Item(mod.Id, mod.Template);
-
-								if (GetTraderOffer(tempItem, trader) is TraderOffer offer2)
-									if (tempHighestOffer == null || offer2.Price > tempHighestOffer.Price)
-										tempHighestOffer = offer2;
-							}
-						}
-					}
-
-					if (tempHighestOffer != null)
-					{
-						if (highestOffer == null)
-							highestOffer = tempHighestOffer;
-						else
-							highestOffer.Price += tempHighestOffer.Price;
+						if (highestOffer == null || offer.Price > highestOffer.Price)
+							highestOffer = offer;
 					}
 				}
 			}
@@ -323,7 +300,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				return;
 
 			itemSells.Add(item.Id);
-
+			
 			if (LootValueMod.EnableQuickSell.Value && !GClass1716.InRaid && item != null)
 			{
 				if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.LeftAlt))
