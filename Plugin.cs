@@ -116,6 +116,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
             TraderBlacklist = Config.Bind("Traders", "Traders to ignore", "", "Separate values by comma, must use trader's id which is usally just thier name. The trader Id can also be found in user/mods/%trader_name%/db/base.json");
 
+            blacklistedTraders.AddRange(TraderBlacklist.Value.ToLower().Split(','));
 
             if (UseCustomColours.Value)
 				SlotColoring.ReadColors(CustomColours.Value);
