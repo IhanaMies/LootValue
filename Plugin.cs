@@ -73,6 +73,11 @@ namespace LootValue
 					SlotColoring.UseDefaultColors();
 				}
 			}
+
+			if (entry.Definition.Key == "Traders to ignore") {
+                blacklistedTraders.Clear();
+                blacklistedTraders.AddRange(TraderBlacklist.Value.ToLower().Split(','));
+			}
 		}
 
 		internal static ConfigEntry<bool> UseCustomColours;
@@ -85,6 +90,8 @@ namespace LootValue
 		internal static ConfigEntry<bool> OnlyShowTotalValue;
 		internal static ConfigEntry<bool> ShowFleaPriceBeforeAccess;
 		internal static ConfigEntry<bool> IgnoreFleaMaxOfferCount;
+
+		internal static ConfigEntry<string> TraderBlacklist;
 
 		private void SetupConfig()
 		{
@@ -107,7 +114,11 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 "
 			);
 
-			if (UseCustomColours.Value)
+            TraderBlacklist = Config.Bind("Traders", "Traders to ignore", "", "Separate values by comma, must use trader's id which is usally just thier name. The trader Id can also be found in user/mods/%trader_name%/db/base.json");
+
+            blacklistedTraders.AddRange(TraderBlacklist.Value.ToLower().Split(','));
+
+            if (UseCustomColours.Value)
 				SlotColoring.ReadColors(CustomColours.Value);
 		}
 	}
@@ -138,6 +149,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
 		public static ManualLogSource logger { get; set; }
 		public static Item hoveredItem;
+		public static List<string> blacklistedTraders = new List<string>();
 
 		public static TraderOffer GetBestTraderOffer(Item item)
 		{
@@ -163,7 +175,10 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			{
 				foreach (TraderClass trader in Session.Traders)
 				{
-					if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
+					if (blacklistedTraders.Contains(trader.Id.ToLower()))
+						continue;
+
+                    if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
 						continue;
 
 					if (GetTraderOffer(weapon, trader) is TraderOffer offer)
@@ -177,7 +192,10 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			{
 				foreach (TraderClass trader in Session.Traders)
 				{
-					if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
+					if (blacklistedTraders.Contains(trader.Id.ToLower()))
+						continue;
+
+                    if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
 						continue;
 
 					if (GetTraderOffer(item, trader) is TraderOffer offer)
