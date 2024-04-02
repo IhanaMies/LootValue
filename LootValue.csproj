@@ -44,74 +44,71 @@
   <ItemGroup>
     <Reference Include="0Harmony, Version=2.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\BepInEx\core\0Harmony.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\BepInEx\core\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="aki-core">
+      <HintPath>..\SharedDlls\aki-core.dll</HintPath>
+    </Reference>
+    <Reference Include="aki-custom">
+      <HintPath>..\SharedDlls\aki-custom.dll</HintPath>
+    </Reference>
+    <Reference Include="aki-singleplayer">
+      <HintPath>..\SharedDlls\aki-singleplayer.dll</HintPath>
     </Reference>
     <Reference Include="Aki.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\Aki.Common.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\Aki.Common.dll</HintPath>
     </Reference>
     <Reference Include="Aki.Reflection, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\SharedDlls\Aki.Reflection.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\Aki.Reflection.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx, Version=5.4.21.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\BepInEx\core\BepInEx.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\BepInEx\core\BepInEx.dll</HintPath>
     </Reference>
     <Reference Include="Comfort, Version=1.0.0.4, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\Comfort.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\Comfort.dll</HintPath>
     </Reference>
     <Reference Include="Comfort.Unity, Version=1.0.0.4, Culture=neutral, PublicKeyToken=null" />
+    <Reference Include="CommonExtensions, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\CommonExtensions.dll</HintPath>
+    </Reference>
     <Reference Include="Crc32.NET, Version=1.0.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\SharedDlls\Crc32.NET.dll</HintPath>
     </Reference>
-    <Reference Include="EFTApi, Version=1.1.8.0, Culture=neutral, PublicKeyToken=13a2b05844723184, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\SharedDlls\EFTApi.dll</HintPath>
-    </Reference>
-    <Reference Include="EFTConfiguration, Version=1.1.8.0, Culture=neutral, PublicKeyToken=13a2b05844723184, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\SharedDlls\EFTConfiguration.dll</HintPath>
-    </Reference>
-    <Reference Include="EFTReflection, Version=1.1.8.0, Culture=neutral, PublicKeyToken=13a2b05844723184, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\SharedDlls\EFTReflection.dll</HintPath>
-    </Reference>
-    <Reference Include="EFTUtils, Version=1.1.8.0, Culture=neutral, PublicKeyToken=13a2b05844723184, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\SharedDlls\EFTUtils.dll</HintPath>
-    </Reference>
     <Reference Include="ItemComponent.Types, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Sirenix.Serialization, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\Sirenix.Serialization.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\Sirenix.Serialization.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -119,12 +116,12 @@
     </Reference>
     <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Pelit\EFT SPT\EscapeFromTarkov_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "I:\Pelit\EFT SPT\BepInEx\plugins\LootValue\"
+    <PostBuildEvent>XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "I:\Pelit\EFT SPT 3.8.0\BepInEx\plugins\LootValue\"
 
 XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "$(SolutionDir)\Releases\BepInEx\plugins\LootValue\"</PostBuildEvent>
   </PropertyGroup>
