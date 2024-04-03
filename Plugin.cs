@@ -324,7 +324,14 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			itemSells.Add(item.Id);
 
-			if (LootValueMod.EnableQuickSell.Value && Singleton<LocalGame>.Instance?.GameTimer == null)
+			//Local function just for the lulz
+			bool HasRaidStarted()
+			{
+				bool? inRaid = Singleton<AbstractGame>.Instance?.InRaid;
+				return inRaid.HasValue && inRaid.Value;
+			}
+
+			if (LootValueMod.EnableQuickSell.Value && !HasRaidStarted())
 			{
 				if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.LeftAlt))
 				{
