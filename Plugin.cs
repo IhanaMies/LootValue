@@ -32,7 +32,7 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "2.0.0";
+        public const string pluginVersion = "2.0.1";
 
 		private void Awake()
 		{
@@ -324,7 +324,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			itemSells.Add(item.Id);
 
-			if (LootValueMod.EnableQuickSell.Value && !Aki.SinglePlayer.Utils.InRaid.RaidTimeUtil.HasRaidLoaded())
+			if (LootValueMod.EnableQuickSell.Value && Singleton<LocalGame>.Instance?.GameTimer == null)
 			{
 				if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.LeftAlt))
 				{
@@ -382,19 +382,23 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 									};
 
 									FleaRequirement[] gs = new FleaRequirement[1] { g };
-									Globals.Session.RagFair.AddOffer(true, new string[1] { item.Id }, gs, null);
+									Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
 
 									logger.Log(LogLevel.Info, $"1 Button Sell Flea Done");
 								}
 								else
 								{
 									TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
-									if (traderClass.CurrentAssortment == null)
-										traderClass.RefreshAssortment(true, false);
 
-									TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-									tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-									tacc.Sell();
+									if (traderClass.CurrentAssortment == null)
+										CreateAssortment(traderClass, item);
+									else
+									{
+										TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
+										tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
+										tacc.Sell();
+									}
+
 								}
 							}
 						}
@@ -416,14 +420,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			}
 
 			itemSells.Remove(item.Id);
-
-			//if (tooltip != null)
-			//{
-			//	logger.Log(LogLevel.Info, $"Close tooltip");
-			//	tooltip.Close();
-			//	tooltip = null;
-			//	hoveredItem = null;
-			//}
 
 			return runOriginalMethod;
 		}
@@ -523,7 +519,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
 
 				FleaRequirement[] gs = new FleaRequirement[1] { g };
-				Globals.Session.RagFair.AddOffer(true, new string[1] { item.Id }, gs, null);
+				Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
 
 				logger.Log(LogLevel.Info, $"2 Button Sell Flea Done");
 			}
