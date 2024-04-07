@@ -21,8 +21,6 @@ using Comfort.Common;
 using System.Threading;
 using HarmonyLib;
 using System.Linq;
-using System.Timers;
-using Timer = System.Timers.Timer;
 
 namespace LootValue
 {
@@ -32,7 +30,7 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "2.0.1";
+        public const string pluginVersion = "2.0.3";
 
 		private void Awake()
 		{
@@ -91,6 +89,9 @@ namespace LootValue
 		internal static ConfigEntry<bool> OneButtonQuickSell;
 		internal static ConfigEntry<bool> OneButtonQuickSellFlea;
 
+		internal static ConfigEntry<bool> showFleaPricesInRaid;
+		internal static ConfigEntry<bool> showPrices;
+
 		internal static ConfigEntry<bool> OnlyShowTotalValue;
 		internal static ConfigEntry<bool> ShowFleaPriceBeforeAccess;
 		internal static ConfigEntry<bool> IgnoreFleaMaxOfferCount;
@@ -118,7 +119,10 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 "
 			);
 
-            TraderBlacklist = Config.Bind("Traders", "Traders to ignore", "", "Separate values by comma, must use trader's id which is usually their name. The trader Id can also be found in user/mods/%trader_name%/db/base.json");
+			showFleaPricesInRaid = Config.Bind("Quick Sell", "Show flea prices in raid", true);
+			showPrices = Config.Bind("Quick Sell", "Show prices", true);
+
+			TraderBlacklist = Config.Bind("Traders", "Traders to ignore", "", "Separate values by comma, must use trader's id which is usually their name. The trader Id can also be found in user/mods/%trader_name%/db/base.json");
 
             blacklistedTraders.AddRange(TraderBlacklist.Value.ToLower().Split(','));
 
@@ -155,6 +159,12 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		public static Item hoveredItem;
 		public static SimpleTooltip tooltip;
 		public static List<string> blacklistedTraders = new List<string>();
+
+		public static bool HasRaidStarted()
+		{
+			bool? inRaid = Singleton<AbstractGame>.Instance?.InRaid;
+			return inRaid.HasValue && inRaid.Value;
+		}
 
 		public static TraderOffer GetBestTraderOffer(Item item)
 		{
@@ -306,7 +316,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		static bool Prefix(GridItemView __instance, PointerEventData.InputButton button, Vector2 position, bool doubleClick)
 		{
 			bool runOriginalMethod = true;
-
 			if (__instance == null || __instance.Item == null || itemSells.Contains(__instance.Item.Id))
 			{
 				if (tooltip != null)
@@ -321,183 +330,139 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			}
 
 			Item item = __instance.Item;
-
-			itemSells.Add(item.Id);
-
-			//Local function just for the lulz
-			bool HasRaidStarted()
+			try
 			{
-				bool? inRaid = Singleton<AbstractGame>.Instance?.InRaid;
-				return inRaid.HasValue && inRaid.Value;
-			}
+				itemSells.Add(item.Id);
 
-			if (LootValueMod.EnableQuickSell.Value && !HasRaidStarted())
-			{
-				if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.LeftAlt))
+				if (LootValueMod.EnableQuickSell.Value && !Globals.HasRaidStarted())
 				{
-					//One button quicksell
-					if (LootValueMod.OneButtonQuickSell.Value)
+					if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.LeftAlt))
 					{
-						if (button == PointerEventData.InputButton.Left)
+						logger.LogInfo($"Quicksell item");
+
+						//One button quicksell
+						if (LootValueMod.OneButtonQuickSell.Value)
 						{
-							TraderOffer bestTraderOffer = GetBestTraderOffer(item);
-							double? fleaPrice = null;
-
-							if (item.MarkedAsSpawnedInSession)
-								fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
-
-							if (bestTraderOffer != null)
+							if (button == PointerEventData.InputButton.Left)
 							{
-								if (fleaPrice.HasValue && fleaPrice.Value > bestTraderOffer.Price)
+								TraderOffer bestTraderOffer = GetBestTraderOffer(item);
+								double? fleaPrice = null;
+
+								if (item.MarkedAsSpawnedInSession)
+									fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
+
+								if (bestTraderOffer != null)
 								{
-									if (!HasFleaSlotToSell(item))
+									if (fleaPrice.HasValue && fleaPrice.Value > bestTraderOffer.Price)
 									{
-										itemSells.Remove(item.Id);
-										if (LootValueMod.OneButtonQuickSellFlea.Value)
+										if (!HasFleaSlotToSell(item))
 										{
-											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached. Sell to trader");
-
-											TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
-
-											if(traderClass.CurrentAssortment == null)
+											itemSells.Remove(item.Id);
+											if (LootValueMod.OneButtonQuickSellFlea.Value)
 											{
-												CreateAssortment(traderClass, item);
+												NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached. Sell to trader");
+												SellToTrader(item, bestTraderOffer);
 											}
 											else
 											{
-												TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-												tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-												tacc.Sell();
+												NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
 											}
+
+											return false;
 										}
-										else
-										{
+										logger.Log(LogLevel.Info, $"1 Button Sell Flea");
+
+										if (!HasFleaSlotToSell(item))
 											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
-										}
 
-										return false;
+										var g = new FleaRequirement()
+										{
+											count = fleaPrice.Value - 1, //undercut by 1 ruble
+											_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
+										};
+
+										FleaRequirement[] gs = new FleaRequirement[1] { g };
+										Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
+
+										logger.Log(LogLevel.Info, $"1 Button Sell Flea Done");
 									}
-									logger.Log(LogLevel.Info, $"1 Button Sell Flea");
-
-									if (!HasFleaSlotToSell(item))
-										NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
-
-									var g = new FleaRequirement()
-									{
-										count = fleaPrice.Value - 1, //undercut by 1 ruble
-										_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
-									};
-
-									FleaRequirement[] gs = new FleaRequirement[1] { g };
-									Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
-
-									logger.Log(LogLevel.Info, $"1 Button Sell Flea Done");
-								}
-								else
-								{
-									TraderClass traderClass = Globals.Session.GetTrader(bestTraderOffer.TraderId);
-
-									if (traderClass.CurrentAssortment == null)
-										CreateAssortment(traderClass, item);
 									else
 									{
-										TraderAssortmentControllerClass tacc = traderClass.CurrentAssortment;
-										tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-										tacc.Sell();
+										SellToTrader(item, bestTraderOffer);
 									}
-
 								}
 							}
 						}
-					}
-					else //Two button quicksell
-					{
-						if (button == PointerEventData.InputButton.Left)
+						else //Two button quicksell
 						{
-							runOriginalMethod = false;
-							SellToTrader(item);
-						}
-						else if (button == PointerEventData.InputButton.Right)
-						{
-							runOriginalMethod = false;
-							SellToFlea(item);
+							if (button == PointerEventData.InputButton.Left)
+							{
+								runOriginalMethod = false;
+								SellToTrader(item);
+							}
+							else if (button == PointerEventData.InputButton.Right)
+							{
+								runOriginalMethod = false;
+								SellToFlea(item);
+							}
 						}
 					}
 				}
-			}
 
-			itemSells.Remove(item.Id);
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex.Message);
+
+				if (ex.InnerException != null)
+				{
+					logger.LogError(ex.InnerException.Message);
+				}
+			}
+			finally
+			{
+				itemSells.Remove(item.Id);
+			}
 
 			return runOriginalMethod;
 		}
 
-		static Timer assortmentTimer;
-		static int assortmentChecks = 0;
-
-		private static void CreateAssortment(TraderClass tc, Item itemToSell)
-		{
-			assortmentChecks = 0;
-
-			tc.RefreshAssortment(true, false);
-
-			assortmentTimer = new Timer();
-			assortmentTimer.Interval = 50;
-			assortmentTimer.Elapsed += (sender, e) => AssortmentCheck(sender, e, tc, itemToSell);
-			assortmentTimer.Start();
-		}
-
-		private static void AssortmentCheck(object sender, ElapsedEventArgs e, TraderClass tc, Item itemToSell)
-		{
-			if (tc.CurrentAssortment == null)
-			{
-				assortmentChecks++;
-
-				if (assortmentChecks > 500)
-				{
-					assortmentTimer.Stop();
-					logger.LogWarning($"Trader assortment failed to be created after 500 times. Trader: {tc.Id}");
-				}
-
-				return;
-			}
-
-			TraderAssortmentControllerClass tacc = tc.CurrentAssortment;
-			tacc.PrepareToSell(itemToSell, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-			tacc.Sell();
-
-			assortmentTimer.Stop();
-		}
-
 		static void SellToTrader(Item item)
 		{
+			string itemId = item.Id;
 			try
 			{
 				TraderOffer bestTraderOffer = GetBestTraderOffer(item);
 
 				if (bestTraderOffer != null)
-				{
-					TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
-					if (tc.CurrentAssortment == null)
-					{
-						CreateAssortment(tc, item);
-					}
-					else
-					{
-						TraderAssortmentControllerClass tacc = tc.CurrentAssortment;
-						tacc.PrepareToSell(item, new LocationInGrid(2, 3, ItemRotation.Horizontal));
-						tacc.Sell();
-					}
-				}
+					SellToTrader(item, bestTraderOffer);
 
-				itemSells.Remove(item.Id);
+				itemSells.Remove(itemId);
 			}
 			catch (Exception ex)
 			{
-				itemSells.Remove(item.Id);
+				itemSells.Remove(itemId);
 
 				logger.LogInfo($"Something fucked up: {ex.Message}");
 				logger.LogInfo($"{ex.InnerException.Message}");
 			}
+		}
+
+		private static void SellToTrader(Item item, TraderOffer bestTraderOffer)
+		{
+			TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
+
+			GClass2047.Class1737 @class = new GClass2047.Class1737();
+			@class.source = new TaskCompletionSource<bool>();
+
+			var itemRef = new EFT.Trading.TradingItemReference
+			{
+				Item = item,
+				Count = item.StackObjectsCount
+			};
+
+			Session.ConfirmSell(tc.Id, new EFT.Trading.TradingItemReference[1] { itemRef }, bestTraderOffer.Price, new Callback(@class.method_0));
+			Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.TradeOperationComplete);
 		}
 
 		static bool HasFleaSlotToSell(Item item)
@@ -514,8 +479,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			if (Session.RagFair.Available && fleaPrice.HasValue)
 			{
-				logger.Log(LogLevel.Info, $"2 Button Sell Flea");
-
 				var g = new FleaRequirement()
 				{
 					count = fleaPrice.Value - 1, //undercut by 1 ruble
@@ -527,8 +490,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				FleaRequirement[] gs = new FleaRequirement[1] { g };
 				Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
-
-				logger.Log(LogLevel.Info, $"2 Button Sell Flea Done");
 			}
 		}
 	}
@@ -549,7 +510,9 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			bool isFleaEligible = false;
 			double lowestFleaOffer = 0;
 
-			if (hoveredItem != null)
+			bool inRaidAndCanShowInRaid = HasRaidStarted() && LootValueMod.showFleaPricesInRaid.Value;
+
+			if (hoveredItem != null && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid))
 			{
 				tooltip = __instance;
 
@@ -630,31 +593,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				if (slots > 1)
 					text += $" Total: {totalValue.FormatNumber()}";
 			}
-		}
-	}
-	public static class AsyncHelper
-	{
-		private static readonly TaskFactory MyTaskFactory = new
-			TaskFactory(CancellationToken.None,
-				TaskCreationOptions.None,
-				TaskContinuationOptions.None,
-				TaskScheduler.Default);
-
-		public static TResult RunSync<TResult>(Func<Task<TResult>> func)
-		{
-			return MyTaskFactory
-				.StartNew(func)
-				.Unwrap()
-				.GetAwaiter()
-				.GetResult();
-		}
-
-		public static void RunSync(Func<Task> func)
-		{
-			MyTaskFactory
-				.StartNew(func)
-				.Unwrap()
-				.ConfigureAwait(true);
 		}
 	}
 }

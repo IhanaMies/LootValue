@@ -118,6 +118,7 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\Pelit\EFT SPT 3.8.0\EscapeFromTarkov_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
