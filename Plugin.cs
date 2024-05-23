@@ -32,6 +32,14 @@ namespace LootValue
         public const string pluginName = "LootValue";
         public const string pluginVersion = "2.0.3";
 
+		public enum ModifierKey
+		{
+			None = 0,
+			Shift = KeyCode.LeftShift,
+			Control = KeyCode.LeftControl,
+			Alt = KeyCode.LeftAlt
+		}
+
 		private void Awake()
 		{
 			Config.SaveOnConfigSet = true;
@@ -98,6 +106,8 @@ namespace LootValue
 
 		internal static ConfigEntry<string> TraderBlacklist;
 
+		internal static ConfigEntry<ModifierKey> showPriceKey;
+
 		private void SetupConfig()
 		{
 			OneButtonQuickSell = Config.Bind("Quick Sell", "One button quick sell", false);
@@ -125,6 +135,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			TraderBlacklist = Config.Bind("Traders", "Traders to ignore", "", "Separate values by comma, must use trader's id which is usually their name. The trader Id can also be found in user/mods/%trader_name%/db/base.json");
 
             blacklistedTraders.AddRange(TraderBlacklist.Value.ToLower().Split(','));
+
+			showPriceKey = Config.Bind("Tooltip", "Modifier key to show price", ModifierKey.None, "Only show price in tooltip while holding this key");
 
             if (UseCustomColours.Value)
 				SlotColoring.ReadColors(CustomColours.Value);
@@ -505,15 +517,15 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		[PatchPrefix]
 		private static void Prefix(ref string text, ref float delay, SimpleTooltip __instance)
 		{
-			delay = 0;
-
 			bool isFleaEligible = false;
 			double lowestFleaOffer = 0;
 
+			bool modifierKeyHeld = Input.GetKey((KeyCode)LootValueMod.showPriceKey.Value) || LootValueMod.showPriceKey.Value == 0;
 			bool inRaidAndCanShowInRaid = HasRaidStarted() && LootValueMod.showFleaPricesInRaid.Value;
 
-			if (hoveredItem != null && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid))
+			if (hoveredItem != null && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid) && modifierKeyHeld)
 			{
+				delay = 0;	// Show tooltip immediately if showing price, otherwise use default delay
 				tooltip = __instance;
 
 				TraderOffer bestTraderOffer = GetBestTraderOffer(hoveredItem);
