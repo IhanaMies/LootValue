@@ -19,7 +19,7 @@ namespace LootValue
 		{
 			bool fleaAvailable = Session.RagFair.Available || LootValueMod.ShowFleaPriceBeforeAccess.Value;
 
-			if (!fleaAvailable || !LootValueMod.EnableFleaQuickSell.Value)
+			if (!fleaAvailable)
 				return null;
 
 			if (cache.ContainsKey(templateId))
