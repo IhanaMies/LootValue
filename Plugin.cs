@@ -344,13 +344,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		}
 
 		public static int GetUnitPriceOfItem(Item item, bool reduceWithCondition = true) {
-			var unitPrice = GetFleaValue(item);
+			int unitPrice = GetFleaValue(item);
 
-			// TODO reduce price per unit depending condition of item
-			var resourcePercentage = GetResourcePercentageOfItem(item);
-			logger.Log(LogLevel.Info, $"Resource percentage: {resourcePercentage}%");
+			float resourcePercentage = GetResourcePercentageOfItem(item);
 
-			return unitPrice;
+			var reducedPrice = unitPrice * resourcePercentage;
+
+			return (int) reducedPrice;
 		}
 
 		public static int GetTotalPriceOfItem(Item item) {
@@ -359,29 +359,34 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			return unitPrice * amountOfItems;
 		}
 
-		public static int GetResourcePercentageOfItem(Item item) {
+		public static float GetResourcePercentageOfItem(Item item) {
 
 			if(item.GetItemComponent<RepairableComponent>() != null) {
+				var repairable = item.GetItemComponent<RepairableComponent>();
 
-				var repairableComponent = item.GetItemComponent<RepairableComponent>();
-				logger.Log(LogLevel.Info, $"RepairableComponent MaxDurability: {repairableComponent.MaxDurability}");
-				logger.Log(LogLevel.Info, $"RepairableComponent Durability: {repairableComponent.Durability}");
-				logger.Log(LogLevel.Info, $"RepairableComponent RelativeValue: {repairableComponent.RelativeValue}");
-				logger.Log(LogLevel.Info, $"RepairableComponent RepairDegradation: {repairableComponent.RepairDegradation}");
-				logger.Log(LogLevel.Info, $"RepairableComponent RepairKitDegradation: {repairableComponent.RepairKitDegradation}");
-				return (int) (repairableComponent.RelativeValue * 100);
+				var actualMax = repairable.TemplateDurability;
+				var currentDurability = repairable.Durability;
+				var currentPercentage = currentDurability / actualMax;
+				return currentPercentage;
 
 			} else if(item.GetItemComponent<MedKitComponent>() != null) {
 
-				return (int) (item.GetItemComponent<MedKitComponent>().RelativeValue * 100);
+				return item.GetItemComponent<MedKitComponent>().RelativeValue;
 				
 			} else if(item.GetItemComponent<FoodDrinkComponent>() != null) {
 
-				return (int) (item.GetItemComponent<FoodDrinkComponent>().RelativeValue * 100);
+				return item.GetItemComponent<FoodDrinkComponent>().RelativeValue * 100;
 
+			} else if(item.GetItemComponent<ArmorHolderComponent>() != null) {
+				var component = item.GetItemComponent<ArmorHolderComponent>();
+
+				var maxDurabilityOfAllBasePlates = component.LockedArmorPlates.Sum(plate => plate.Armor.Repairable.TemplateDurability);
+				var currentDurabilityOfAllBasePlates = component.LockedArmorPlates.Sum(plate => plate.Armor.Repairable.Durability);
+				var currentPercentage = currentDurabilityOfAllBasePlates / maxDurabilityOfAllBasePlates;
+				return currentPercentage;
 			}
 
-			return 100;
+			return 1.0f;
 
 		}
 	}
@@ -548,7 +553,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				logger.Log(LogLevel.Info, $"1 Selling multiple items");
 				var itemsOfParent = item.Parent.Container.Items;
 				var itemsSimilarToTheOneImSelling = itemsOfParent.Where(o => item.Compare(o) && o.MarkedAsSpawnedInSession);
-				// TODO: sell only items with the same condition value
 				return SellToFlea(item, itemsSimilarToTheOneImSelling);
 			} else {
 				logger.Log(LogLevel.Info, $"1 Selling one item");
@@ -710,20 +714,18 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 					// append trader price
 					var traderName = $"{bestTraderOffer.TraderName}: ";
-					var traderNameColor = sellToTrader ? "#ffffff" : "#666666";
+					var traderNameColor = sellToTrader ? "#ffffff" : "#444444";
 					var traderPricePerSlotColor = SlotColoring.GetColorFromValuePerSlots(pricePerSlotTrader);
+					// TODO: also numb the color if not selected
+				
 					AppendTextToToolip(ref text, traderName, traderNameColor);
 					AppendTextToToolip(ref text, finalTraderPrice.FormatNumber(), traderPricePerSlotColor);
+
 					if(stackAmount > 1) {
 						var unitPrice = $" ({(finalTraderPrice / stackAmount).FormatNumber()})";
 						AppendTextToToolip(ref text, unitPrice, "#333333");
 					}
 					
-					// Mark that if quick sell is used, it will be sold to the trader.
-					// TODO: only mark if one button quick sell is enabled
-					if(sellToTrader && canBeSoldToBoth && !HasRaidStarted()) {
-						AppendTextToToolip(ref text, " <=", "#ffffff");
-					}
 				}
 
 				// append trader price on the tooltip
@@ -732,24 +734,27 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					
 					// append flea price
 					var fleaName = $"Flea: ";
-					var fleaNameColor = sellToTrader ? "#666666" : "#ffffff";
+					var fleaNameColor = sellToTrader ? "#444444" : "#ffffff";
 					var fleaPricePerSlotColor = SlotColoring.GetColorFromValuePerSlots(pricePerSlotFlea);
+					// TODO: also numb the color if not selected
+
 					AppendTextToToolip(ref text, fleaName, fleaNameColor);
 					AppendTextToToolip(ref text, finalFleaPrice.FormatNumber(), fleaPricePerSlotColor);
+
+					var durability = GetResourcePercentageOfItem(hoveredItem);
+					var missingDurability = 100 - durability * 100;
+					if((int) missingDurability > 0) {
+						var reducedPrice = $" (-{(int) missingDurability}%)";
+						AppendTextToToolip(ref text, reducedPrice, "#990000");
+					}
 
 					if(stackAmount > 1) {
 						var unitPrice = $" ({GetUnitPriceOfItem(hoveredItem).FormatNumber()})";
 						AppendTextToToolip(ref text, unitPrice, "#333333");
 					}
 
-					// mark that if quick sell is used, it will be sold to the flea.
-					// TODO: only mark if one button quick sell is enabled
-					if(!sellToTrader && canBeSoldToBoth && !HasRaidStarted()) {
-						AppendTextToToolip(ref text, " <=", "#ffffff");
-					}
-
-					// Only show this out of raid, and only if it will be attempted to be sold on the flea
-					if(!HasRaidStarted() && !sellToTrader) {
+					// Only show this out of raid
+					if(!HasRaidStarted()) {
 
 						if(!WillBePurchasableByAtLeastOneTrader(hoveredItem)) {
 							// If the item can be sold on flea, but no trader will buy it, then most likely the item is not empty, as even Fence will accept broken items
