@@ -362,10 +362,14 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				
 			} else if(item.GetItemComponent<FoodDrinkComponent>() != null) {
 
-				return item.GetItemComponent<FoodDrinkComponent>().RelativeValue * 100;
+				return item.GetItemComponent<FoodDrinkComponent>().RelativeValue;
 
 			} else if(item.GetItemComponent<ArmorHolderComponent>() != null) {
 				var component = item.GetItemComponent<ArmorHolderComponent>();
+
+				if(component.LockedArmorPlates.Count() == 0) {
+					return 1.0f;
+				}
 
 				var maxDurabilityOfAllBasePlates = component.LockedArmorPlates.Sum(plate => plate.Armor.Repairable.TemplateDurability);
 				var currentDurabilityOfAllBasePlates = component.LockedArmorPlates.Sum(plate => plate.Armor.Repairable.Durability);
@@ -643,6 +647,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				bool canBeSoldToFlea = true;
 				bool sellToTrader = false;
 
+				// TODO: if out of raid, only show own items (so items in traders / flea market dont receive innecessary tooltips)
 				if(LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid)) {
 
 					// we only get the base flea price for the base item, even if it's a weapon
@@ -747,11 +752,15 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 							}
 							
 						}
+
+						// TODO: add an option to show price per slot & price per KG once in raid
+						// TODO: 	in raid should only show best price of both
+						
 					}
 					
 				}
 
-
+				// TODO: dont show if not player own item
 				if(LootValueMod.EnableQuickSell.Value && !HasRaidStarted()) {
 
 					if(LootValueMod.OneButtonQuickSell.Value ) {
