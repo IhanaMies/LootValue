@@ -418,6 +418,15 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		public static bool ItemBelongsToTraderOrFleaMarketOrMail(Item item)
 		{
 
+			if(item == null) {
+				return false;
+			}
+
+			if(item.Owner == null) {
+				return false;
+			}
+
+
 			var ownerType = item.Owner.OwnerType;
 			if (EOwnerType.Trader.Equals(ownerType))
 			{
@@ -442,6 +451,36 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			return EOwnerType.Profile.Equals(ownerType);
 		}
 
+		/**
+		* Includes original item!
+		*/
+		public static IEnumerable<Item> GetItemsSimilarToItemWithinSameContainer(Item item)
+		{
+
+			if(item == null) {
+				return Enumerable.Empty<Item>();
+			}
+
+			if(item.Parent == null) {
+				return Enumerable.Empty<Item>();
+			}
+
+			if(item.Parent.Container == null) {
+				return Enumerable.Empty<Item>();
+			}
+
+			var itemsOfParent = item.Parent.Container.Items;
+			return itemsOfParent.Where(o => item.Compare(o) && o.MarkedAsSpawnedInSession);
+		}
+
+		/**
+		* Includes original item!
+		*/
+		public static int CountItemsSimilarToItemWithinSameContainer(Item item)
+		{
+			return GetItemsSimilarToItemWithinSameContainer(item).Count();
+		}
+
 		public static void SellFleaItemOrMultipleItemsIfEnabled(Item item)
 		{
 
@@ -449,8 +488,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			if (LootValueMod.SellAllItemsFindInRaid.Value && item.MarkedAsSpawnedInSession)
 			{
 				logger.Log(LogLevel.Info, $"1 Selling multiple items");
-				var itemsOfParent = item.Parent.Container.Items;
-				var itemsSimilarToTheOneImSelling = itemsOfParent.Where(o => item.Compare(o) && o.MarkedAsSpawnedInSession);
+				var itemsSimilarToTheOneImSelling = GetItemsSimilarToItemWithinSameContainer(item);
 				SellToFlea(item, itemsSimilarToTheOneImSelling);
 			}
 			else
@@ -702,7 +740,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			return runOriginalMethod;
 		}
 
-		
+
 
 	}
 
@@ -800,8 +838,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			if (canBeSoldToTrader || canBeSoldToFlea)
 			{
-				AppendNewLineToTooltipText(ref text);
-				AppendTextToToolip(ref text, "--------------------", "#444444");
+				AppendSeparator(ref text, appendNewLineAfter: false);
 			}
 
 			// append trader price on tooltip
@@ -909,9 +946,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					var pricePerSlot = isTraderPriceHigherThanFlea ? pricePerSlotTrader : pricePerSlotFlea;
 					var pricePerWeight = (int)(price / hoveredItem.GetSingleItemTotalWeight());
 
-					AppendNewLineToTooltipText(ref text);
-					AppendTextToToolip(ref text, "--------------------", "#555555");
-					AppendNewLineToTooltipText(ref text);
+					AppendSeparator(ref text, "#555555");
 
 					StartSizeTag(ref text, 11);
 					AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
@@ -934,13 +969,11 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				{
 
 					bool willBeSoldAfterClicking = (!sellToTrader && canBeSoldToFlea) ||
-												   (sellToTrader && canBeSoldToTrader);
+													 (sellToTrader && canBeSoldToTrader);
 
 					if (willBeSoldAfterClicking)
 					{
-						AppendNewLineToTooltipText(ref text);
-						AppendTextToToolip(ref text, "--------------------", "#444444");
-						AppendNewLineToTooltipText(ref text);
+						AppendSeparator(ref text);
 						AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
 					}
 				}
@@ -948,9 +981,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				{
 					if (canBeSoldToFlea || canBeSoldToTrader)
 					{
-						AppendNewLineToTooltipText(ref text);
-						AppendTextToToolip(ref text, "--------------------", "#444444");
-						AppendNewLineToTooltipText(ref text);
+						AppendSeparator(ref text);
 					}
 
 					if (canBeSoldToTrader)
@@ -968,6 +999,22 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 						AppendTextToToolip(ref text, $"Sell to Flea with Alt+Shift+Right Click", "#888888");
 					}
 				}
+
+				if (!sellToTrader && canBeSoldToFlea)
+				{
+
+					// append only if more than 1 item will be sold due to the flea market action
+					var amountOfItems = CountItemsSimilarToItemWithinSameContainer(hoveredItem);
+					if (amountOfItems > 1)
+					{
+						AppendNewLineToTooltipText(ref text);
+						StartSizeTag(ref text, 10);
+						AppendTextToToolip(ref text, $"(Will sell {amountOfItems} similar items)", "#555555");
+						EndSizeTag(ref text);
+					}
+
+				}
+
 			}
 
 
@@ -992,5 +1039,17 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		{
 			tooltipText += $"</size>";
 		}
+
+		private static void AppendSeparator(ref string tooltipText, string color = "#444444", bool appendNewLineAfter = true)
+		{
+			AppendNewLineToTooltipText(ref tooltipText);
+			AppendTextToToolip(ref tooltipText, "--------------------", color);
+			if (appendNewLineAfter)
+			{
+				AppendNewLineToTooltipText(ref tooltipText);
+			}
+		}
+
+
 	}
 }
