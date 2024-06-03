@@ -441,6 +441,105 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			var ownerType = item.Owner.OwnerType;
 			return EOwnerType.Profile.Equals(ownerType);
 		}
+
+		public static void SellFleaItemOrMultipleItemsIfEnabled(Item item)
+		{
+
+			// If I click on one FiR item, it will attempt to sell all the same items (FiR) in the same flea offer
+			if (LootValueMod.SellAllItemsFindInRaid.Value && item.MarkedAsSpawnedInSession)
+			{
+				logger.Log(LogLevel.Info, $"1 Selling multiple items");
+				var itemsOfParent = item.Parent.Container.Items;
+				var itemsSimilarToTheOneImSelling = itemsOfParent.Where(o => item.Compare(o) && o.MarkedAsSpawnedInSession);
+				SellToFlea(item, itemsSimilarToTheOneImSelling);
+			}
+			else
+			{
+				logger.Log(LogLevel.Info, $"1 Selling one item");
+				SellToFlea(item);
+			}
+
+		}
+
+		public static void SellToTrader(Item item)
+		{
+			string itemId = item.Id;
+			try
+			{
+				TraderOffer bestTraderOffer = GetBestTraderOffer(item);
+
+				if (bestTraderOffer == null)
+				{
+					NotificationManagerClass.DisplayWarningNotification("No trader will purchase this item.");
+					return;
+				}
+
+				SellToTrader(item, bestTraderOffer);
+			}
+			catch (Exception ex)
+			{
+				logger.LogInfo($"Something fucked up: {ex.Message}");
+				logger.LogInfo($"{ex.InnerException.Message}");
+			}
+		}
+
+		public static void SellToTrader(Item item, TraderOffer bestTraderOffer)
+		{
+			TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
+
+			GClass2047.Class1737 @class = new GClass2047.Class1737();
+			@class.source = new TaskCompletionSource<bool>();
+
+			var itemRef = new EFT.Trading.TradingItemReference
+			{
+				Item = item,
+				Count = item.StackObjectsCount
+			};
+
+			Session.ConfirmSell(tc.Id, new EFT.Trading.TradingItemReference[1] { itemRef }, bestTraderOffer.Price, new Callback(@class.method_0));
+			Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.TradeOperationComplete);
+		}
+
+
+
+		public static void SellToFlea(Item baseItem, IEnumerable<Item> items)
+		{
+			if (!CanBeSoldInFleaRightNow(baseItem))
+			{
+				return;
+			}
+
+			var price = GetUnitPriceOfItem(baseItem);
+			var g = new FleaRequirement()
+			{
+				count = price - 1, //undercut by 1 ruble
+				_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
+			};
+
+			FleaRequirement[] gs = new FleaRequirement[1] { g };
+			Globals.Session.RagFair.AddOffer(false, items.Select(i => i.Id).ToArray(), gs, null);
+		}
+
+		public static bool SellToFlea(Item item)
+		{
+			if (!CanBeSoldInFleaRightNow(item))
+			{
+				return false;
+			}
+
+			var price = GetUnitPriceOfItem(item);
+			var g = new FleaRequirement()
+			{
+				count = price - 1, //undercut by 1 ruble
+				_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
+			};
+
+			FleaRequirement[] gs = new FleaRequirement[1] { g };
+			Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
+
+			return true;
+
+		}
 	}
 
 	internal class GridItemOnPointerEnterPatch : ModulePatch
@@ -603,104 +702,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			return runOriginalMethod;
 		}
 
-		static void SellFleaItemOrMultipleItemsIfEnabled(Item item)
-		{
-
-			// If I click on one FiR item, it will attempt to sell all the same items (FiR) in the same flea offer
-			if (LootValueMod.SellAllItemsFindInRaid.Value && item.MarkedAsSpawnedInSession)
-			{
-				logger.Log(LogLevel.Info, $"1 Selling multiple items");
-				var itemsOfParent = item.Parent.Container.Items;
-				var itemsSimilarToTheOneImSelling = itemsOfParent.Where(o => item.Compare(o) && o.MarkedAsSpawnedInSession);
-				SellToFlea(item, itemsSimilarToTheOneImSelling);
-			}
-			else
-			{
-				logger.Log(LogLevel.Info, $"1 Selling one item");
-				SellToFlea(item);
-			}
-
-		}
-
-		static void SellToTrader(Item item)
-		{
-			string itemId = item.Id;
-			try
-			{
-				TraderOffer bestTraderOffer = GetBestTraderOffer(item);
-
-				if (bestTraderOffer == null)
-				{
-					NotificationManagerClass.DisplayWarningNotification("No trader will purchase this item.");
-					return;
-				}
-
-				SellToTrader(item, bestTraderOffer);
-			}
-			catch (Exception ex)
-			{
-				logger.LogInfo($"Something fucked up: {ex.Message}");
-				logger.LogInfo($"{ex.InnerException.Message}");
-			}
-		}
-
-		private static void SellToTrader(Item item, TraderOffer bestTraderOffer)
-		{
-			TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
-
-			GClass2047.Class1737 @class = new GClass2047.Class1737();
-			@class.source = new TaskCompletionSource<bool>();
-
-			var itemRef = new EFT.Trading.TradingItemReference
-			{
-				Item = item,
-				Count = item.StackObjectsCount
-			};
-
-			Session.ConfirmSell(tc.Id, new EFT.Trading.TradingItemReference[1] { itemRef }, bestTraderOffer.Price, new Callback(@class.method_0));
-			Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.TradeOperationComplete);
-		}
-
-
-
-		static void SellToFlea(Item baseItem, IEnumerable<Item> items)
-		{
-			if (!CanBeSoldInFleaRightNow(baseItem))
-			{
-				return;
-			}
-
-			var price = GetUnitPriceOfItem(baseItem);
-			var g = new FleaRequirement()
-			{
-				count = price - 1, //undercut by 1 ruble
-				_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
-			};
-
-			FleaRequirement[] gs = new FleaRequirement[1] { g };
-			Globals.Session.RagFair.AddOffer(false, items.Select(i => i.Id).ToArray(), gs, null);
-		}
-
-		static bool SellToFlea(Item item)
-		{
-			if (!CanBeSoldInFleaRightNow(item))
-			{
-				return false;
-			}
-
-			var price = GetUnitPriceOfItem(item);
-			var g = new FleaRequirement()
-			{
-				count = price - 1, //undercut by 1 ruble
-				_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
-			};
-
-			FleaRequirement[] gs = new FleaRequirement[1] { g };
-			Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
-
-			return true;
-
-		}
+		
 
 	}
 
