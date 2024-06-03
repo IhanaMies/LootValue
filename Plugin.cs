@@ -88,6 +88,11 @@ namespace LootValue
 		internal static ConfigEntry<bool> ShowFleaPriceBeforeAccess;
 		internal static ConfigEntry<bool> ShowPricePerKgAndPerSlotInRaid;
 
+		internal static ConfigEntry<bool> HideLowerPrice;
+		internal static ConfigEntry<bool> HideLowerPriceInRaid;
+
+
+
 		private void SetupConfig()
 		{
 
@@ -96,6 +101,8 @@ namespace LootValue
 			ShowFleaPricesInRaid = Config.Bind("0. Item Prices", "1. Show prices while in raid", true);
 			ShowFleaPriceBeforeAccess = Config.Bind("0. Item Prices", "2. Show flea prices before access to it", false);
 			ShowPricePerKgAndPerSlotInRaid = Config.Bind("0. Item Prices", "3. Show price per KG & price per slot in raid", false);
+			HideLowerPrice = Config.Bind("0. Item Prices", "4. Hide lower price", false);
+			HideLowerPriceInRaid = Config.Bind("0. Item Prices", "5. Hide lower price in raid", false);
 
 			// General: Quick Sell
 			EnableQuickSell = Config.Bind("1. Quick Sell", "0. Enable quick sell", true, "Sell any item(s) instantly using the key combination described in 'One button quick sell'.");
@@ -408,7 +415,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 		}
 
-		public static bool DoesItemBelongToTraderOrFleaMarket(Item item)
+		public static bool ItemBelongsToTraderOrFleaMarketOrMail(Item item)
 		{
 
 			var ownerType = item.Owner.OwnerType;
@@ -427,6 +434,12 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			return false;
 
+		}
+
+		public static bool IsItemInPlayerInventory(Item item)
+		{
+			var ownerType = item.Owner.OwnerType;
+			return EOwnerType.Profile.Equals(ownerType);
 		}
 	}
 
@@ -495,6 +508,11 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			}
 
 			Item item = __instance.Item;
+
+			if (!IsItemInPlayerInventory(item))
+			{
+				return true;
+			}
 
 			try
 			{
@@ -699,191 +717,253 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		private static void Prefix(ref string text, ref float delay, SimpleTooltip __instance)
 		{
 			delay = 0;
+			tooltip = __instance;
 
-			if (hoveredItem != null)
+			if (hoveredItem == null)
 			{
-				tooltip = __instance;
+				return;
+			}
 
-				bool isInRaid = HasRaidStarted();
-				bool pricesTooltipEnabled = LootValueMod.ShowPrices.Value;
-				bool shouldShowPricesTooltipwhileInRaid = LootValueMod.ShowFleaPricesInRaid.Value;
-				bool canShowTooltip = isInRaid ? shouldShowPricesTooltipwhileInRaid : true;
-				bool shouldShowTooltipBasedOnItemOwnership = !DoesItemBelongToTraderOrFleaMarket(hoveredItem);
+			bool pricesTooltipEnabled = LootValueMod.ShowPrices.Value;
+			if (pricesTooltipEnabled == false)
+			{
+				return;
+			}
 
-				bool canBeSoldToTrader = true;
-				bool canBeSoldToFlea = true;
-				bool sellToTrader = false;
+			bool shouldShowPricesTooltipwhileInRaid = LootValueMod.ShowFleaPricesInRaid.Value;
+			bool hideLowerPrice = LootValueMod.HideLowerPrice.Value;
+			bool hideLowerPriceInRaid = LootValueMod.HideLowerPriceInRaid.Value;
 
-				if (pricesTooltipEnabled && canShowTooltip && shouldShowTooltipBasedOnItemOwnership)
+			bool isInRaid = HasRaidStarted();
+
+			if (!shouldShowPricesTooltipwhileInRaid && isInRaid)
+			{
+				return;
+			}
+			if (ItemBelongsToTraderOrFleaMarketOrMail(hoveredItem))
+			{
+				return;
+			}
+
+
+			int stackAmount = hoveredItem.StackObjectsCount;
+
+			// we only get the base flea price for the base item, even if it's a weapon
+			int finalFleaPrice = GetTotalPriceOfItem(hoveredItem);
+			bool canBeSoldToFlea = finalFleaPrice == 0;
+
+			// trader offer might be null because the item can't be sold (for any reason whatsoever), so if it's null we consider 0 trader value to avoid null checks
+			int finalTraderPrice = 0;
+			var bestTraderOffer = GetBestTraderOffer(hoveredItem);
+			if (bestTraderOffer != null)
+			{
+				finalTraderPrice = bestTraderOffer.Price;
+			}
+			bool canBeSoldToTrader = finalFleaPrice == 0;
+
+			// determine price per slot for each sale type				
+			var size = hoveredItem.CalculateCellSize();
+			int slots = size.X * size.Y;
+
+			int pricePerSlotTrader = finalTraderPrice / slots;
+			int pricePerSlotFlea = finalFleaPrice / slots;
+
+			// so we determine which one is non highlighted
+			bool isTraderPriceHigherThanFlea = finalTraderPrice > finalFleaPrice;
+			bool isFleaPriceHigherThanTrader = finalFleaPrice > finalTraderPrice;
+			bool sellToTrader = isTraderPriceHigherThanFlea;
+
+			// If both trader and flea are 0, then the item is not purchasable
+			// Either it is actually not purchasable or the item has items inside.
+			// We can't reliably check this for now.
+			if (!canBeSoldToTrader && !canBeSoldToFlea)
+			{
+				AppendNewLineToTooltipText(ref text);
+				AppendTextToToolip(ref text, "(Item can't be sold)", "#AA3333");
+			}
+
+			var showTraderPrice = true;
+			if (hideLowerPrice && isFleaPriceHigherThanTrader)
+			{
+				showTraderPrice = false;
+			}
+			if (hideLowerPriceInRaid && isInRaid && isFleaPriceHigherThanTrader)
+			{
+				showTraderPrice = false;
+			}
+			if (finalTraderPrice == 0)
+			{
+				showTraderPrice = false;
+			}
+
+			AppendNewLineToTooltipText(ref text);
+			AppendTextToToolip(ref text, "--------------------", "#444444");
+
+			// append trader price on tooltip
+			if (showTraderPrice)
+			{
+				AppendNewLineToTooltipText(ref text);
+
+				// append trader price
+				var traderName = $"{bestTraderOffer.TraderName}: ";
+				var traderNameColor = sellToTrader ? "#ffffff" : "#444444";
+				var traderPricePerSlotColor = isTraderPriceHigherThanFlea ? SlotColoring.GetColorFromValuePerSlots(pricePerSlotTrader) : "#444444";
+				var fontSize = isTraderPriceHigherThanFlea ? 14 : 10;
+
+				StartSizeTag(ref text, fontSize);
+
+				AppendTextToToolip(ref text, traderName, traderNameColor);
+				AppendTextToToolip(ref text, $"₽ {finalTraderPrice.FormatNumber()}", traderPricePerSlotColor);
+
+				if (stackAmount > 1)
+				{
+					var unitPrice = $" ({(finalTraderPrice / stackAmount).FormatNumber()})";
+					AppendTextToToolip(ref text, unitPrice, "#333333");
+				}
+
+				EndSizeTag(ref text);
+
+			}
+
+
+			var showFleaPrice = true;
+			if (hideLowerPrice && isTraderPriceHigherThanFlea)
+			{
+				showFleaPrice = false;
+			}
+			if (hideLowerPriceInRaid && isInRaid && isTraderPriceHigherThanFlea)
+			{
+				showFleaPrice = false;
+			}
+			if (finalFleaPrice == 0)
+			{
+				showFleaPrice = false;
+			}
+
+			// append flea price on the tooltip
+			if (showFleaPrice)
+			{
+				AppendNewLineToTooltipText(ref text);
+
+				// append flea price
+				var fleaName = $"Flea: ";
+				var fleaNameColor = sellToTrader ? "#444444" : "#ffffff";
+				var fleaPricePerSlotColor = isTraderPriceHigherThanFlea ? "#444444" : SlotColoring.GetColorFromValuePerSlots(pricePerSlotFlea);
+				var fontSize = isTraderPriceHigherThanFlea ? 10 : 14;
+
+				StartSizeTag(ref text, fontSize);
+
+				AppendTextToToolip(ref text, fleaName, fleaNameColor);
+				AppendTextToToolip(ref text, $"₽ {finalFleaPrice.FormatNumber()}", fleaPricePerSlotColor);
+
+				// TODO: make reduce flea price based on durability configurable
+				// TODO: make an alternative view cfg so instead of seeing missing durability you see total price (reducedPrice)
+				var durability = GetResourcePercentageOfItem(hoveredItem);
+				var missingDurability = 100 - durability * 100;
+				if ((int)missingDurability > 0)
+				{
+					var reducedPrice = $" (-{(int)missingDurability}%)";
+					AppendTextToToolip(ref text, reducedPrice, "#AA1111");
+				}
+
+				if (stackAmount > 1)
+				{
+					var unitPrice = $" ({GetUnitPriceOfItem(hoveredItem).FormatNumber()})";
+					AppendTextToToolip(ref text, unitPrice, "#333333");
+				}
+
+				EndSizeTag(ref text);
+
+				// Only show this out of raid
+				if (!isInRaid && !isTraderPriceHigherThanFlea)
 				{
 
-					// we only get the base flea price for the base item, even if it's a weapon
-					int finalFleaPrice = GetTotalPriceOfItem(hoveredItem);
-					int stackAmount = hoveredItem.StackObjectsCount;
-
-					// trader offer might be null because the item can't be sold (for any reason whatsoever), so if it's null we consider 0 trader value to avoid null checks
-					int finalTraderPrice = 0;
-					TraderOffer bestTraderOffer = GetBestTraderOffer(hoveredItem);
-					if (bestTraderOffer != null)
+					if (!WillBePurchasableByAtLeastOneTrader(hoveredItem))
 					{
-						finalTraderPrice = bestTraderOffer.Price;
-					}
-
-					// determine price per slot for each sale type				
-					var size = hoveredItem.CalculateCellSize();
-					int slots = size.X * size.Y;
-
-					int pricePerSlotTrader = finalTraderPrice / slots;
-					int pricePerSlotFlea = finalFleaPrice / slots;
-
-					// so we determine which one is non highlighted
-					bool isTraderPriceHigherThanFlea = pricePerSlotTrader > pricePerSlotFlea;
-
-					// If both trader and flea are 0, then the item is not purchasable
-					// Either it is actually not purchasable or the item has items inside.
-					// We can't reliably check this for now.
-					if (finalTraderPrice == 0 && finalFleaPrice == 0)
-					{
+						// If the item can be sold on flea, but no trader will buy it, then most likely the item is not empty, as even Fence will accept broken items
 						AppendNewLineToTooltipText(ref text);
-						AppendTextToToolip(ref text, "(Item can't be sold)", "#AA3333");
+						AppendTextToToolip(ref text, "(Item is not empty)", "#AA3333");
+						canBeSoldToFlea = false;
 					}
-
-					if (finalTraderPrice == 0)
+					else if (ContainsNonFleableItemsInside(hoveredItem))
 					{
-						canBeSoldToTrader = false;
-					}
-					if (finalFleaPrice == 0)
-					{
+						// We can already know if any item inside this item wont be able to be sold on the flea market
+						AppendNewLineToTooltipText(ref text);
+						AppendTextToToolip(ref text, "(Incompatible Items Inside)", "#AA3333");
 						canBeSoldToFlea = false;
 					}
 
-					// Sell to trader if trader price is higher than flea
-					if (isTraderPriceHigherThanFlea)
-					{
-						sellToTrader = true;
-					}
-
-
-					// append trader price on tooltip
-					if (finalTraderPrice > 0)
-					{
-						AppendNewLineToTooltipText(ref text);
-
-						// append trader price
-						var traderName = $"{bestTraderOffer.TraderName}: ";
-						var traderNameColor = sellToTrader ? "#ffffff" : "#444444";
-						var traderPricePerSlotColor = isTraderPriceHigherThanFlea ? SlotColoring.GetColorFromValuePerSlots(pricePerSlotTrader) : "#444444";
-
-						AppendTextToToolip(ref text, traderName, traderNameColor);
-						AppendTextToToolip(ref text, finalTraderPrice.FormatNumber(), traderPricePerSlotColor);
-
-						if (stackAmount > 1)
-						{
-							var unitPrice = $" ({(finalTraderPrice / stackAmount).FormatNumber()})";
-							AppendTextToToolip(ref text, unitPrice, "#333333");
-						}
-
-					}
-
-					// append trader price on the tooltip
-					if (finalFleaPrice > 0)
-					{
-						AppendNewLineToTooltipText(ref text);
-
-						// append flea price
-						var fleaName = $"Flea: ";
-						var fleaNameColor = sellToTrader ? "#444444" : "#ffffff";
-						var fleaPricePerSlotColor = isTraderPriceHigherThanFlea ? "#444444" : SlotColoring.GetColorFromValuePerSlots(pricePerSlotFlea);
-
-						AppendTextToToolip(ref text, fleaName, fleaNameColor);
-						AppendTextToToolip(ref text, finalFleaPrice.FormatNumber(), fleaPricePerSlotColor);
-
-						var durability = GetResourcePercentageOfItem(hoveredItem);
-						var missingDurability = 100 - durability * 100;
-						if ((int)missingDurability > 0)
-						{
-							var reducedPrice = $" (-{(int)missingDurability}%)";
-							AppendTextToToolip(ref text, reducedPrice, "#AA1111");
-						}
-
-						if (stackAmount > 1)
-						{
-							var unitPrice = $" ({GetUnitPriceOfItem(hoveredItem).FormatNumber()})";
-							AppendTextToToolip(ref text, unitPrice, "#333333");
-						}
-
-						// Only show this out of raid
-						if (!HasRaidStarted())
-						{
-
-							if (!WillBePurchasableByAtLeastOneTrader(hoveredItem))
-							{
-								// If the item can be sold on flea, but no trader will buy it, then most likely the item is not empty, as even Fence will accept broken items
-								AppendNewLineToTooltipText(ref text);
-								AppendTextToToolip(ref text, "(Item is not empty)", "#AA3333");
-								canBeSoldToFlea = false;
-							}
-							else if (ContainsNonFleableItemsInside(hoveredItem))
-							{
-								// We can already know if any item inside this item wont be able to be sold on the flea market
-								AppendNewLineToTooltipText(ref text);
-								AppendTextToToolip(ref text, "(Incompatible Items Inside)", "#AA3333");
-								canBeSoldToFlea = false;
-							}
-
-						}
-
-						// TODO: add an option to show price per slot & price per KG once in raid
-						// TODO: 	in raid should only show best price of both
-
-					}
-
 				}
 
-				bool quickSellEnabled = LootValueMod.EnableQuickSell.Value;
-				bool quickSellUsesOneButton = LootValueMod.OneButtonQuickSell.Value;
 
-				if (quickSellEnabled && !isInRaid && shouldShowTooltipBasedOnItemOwnership)
+				var shouldShowPricePerSlotAndPerKg = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
+				if (/* isInRaid && */ shouldShowPricePerSlotAndPerKg)
 				{
 
-					if (quickSellUsesOneButton)
-					{
+					var price = isTraderPriceHigherThanFlea ? finalTraderPrice : finalFleaPrice;
+					var pricePerSlot = isTraderPriceHigherThanFlea ? pricePerSlotTrader : pricePerSlotFlea;
+					var pricePerWeight = (int)(price / hoveredItem.GetSingleItemTotalWeight());
 
-						bool willBeSoldAfterClicking = (!sellToTrader && canBeSoldToFlea) || (sellToTrader && canBeSoldToTrader);
-						if (willBeSoldAfterClicking)
-						{
-							AppendNewLineToTooltipText(ref text);
-							AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
-						}
+					AppendNewLineToTooltipText(ref text);
+					AppendTextToToolip(ref text, "--------------------", "#444444");
+					AppendNewLineToTooltipText(ref text);
+					
+					StartSizeTag(ref text, 10);
+					AppendTextToToolip(ref text, $"₽ / KG: {pricePerWeight.FormatNumber()}", "#444444");
+					AppendNewLineToTooltipText(ref text);
+					AppendTextToToolip(ref text, $"₽ / SL: {pricePerSlot.FormatNumber()}", "#444444");
+					EndSizeTag(ref text);
 
-					}
-					else
-					{
-
-						if (canBeSoldToFlea || canBeSoldToTrader)
-						{
-							AppendNewLineToTooltipText(ref text);
-						}
-
-						if (canBeSoldToTrader)
-						{
-							AppendTextToToolip(ref text, $"Sell to Trader with Alt+Shift+Left Click", "#888888");
-						}
-
-						if (canBeSoldToFlea && canBeSoldToTrader)
-						{
-							AppendNewLineToTooltipText(ref text);
-						}
-
-						if (canBeSoldToFlea)
-						{
-							AppendTextToToolip(ref text, $"Sell to Flea with Alt+Shift+Right Click", "#888888");
-						}
-
-					}
 				}
 
 			}
+
+
+			bool quickSellEnabled = LootValueMod.EnableQuickSell.Value;
+			bool quickSellUsesOneButton = LootValueMod.OneButtonQuickSell.Value;
+			bool showQuickSaleCommands = quickSellEnabled && !isInRaid && !ItemBelongsToTraderOrFleaMarketOrMail(hoveredItem);
+
+			if (showQuickSaleCommands)
+			{
+				if (quickSellUsesOneButton)
+				{
+
+					bool willBeSoldAfterClicking = (!sellToTrader && canBeSoldToFlea) || (sellToTrader && canBeSoldToTrader);
+					if (willBeSoldAfterClicking)
+					{
+						AppendNewLineToTooltipText(ref text);
+						AppendTextToToolip(ref text, "--------------------", "#444444");
+						AppendNewLineToTooltipText(ref text);
+						AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
+					}
+				}
+				else
+				{
+					if (canBeSoldToFlea || canBeSoldToTrader)
+					{
+						AppendNewLineToTooltipText(ref text);
+						AppendTextToToolip(ref text, "--------------------", "#444444");
+						AppendNewLineToTooltipText(ref text);
+					}
+
+					if (canBeSoldToTrader)
+					{
+						AppendTextToToolip(ref text, $"Sell to Trader with Alt+Shift+Left Click", "#888888");
+					}
+
+					if (canBeSoldToFlea && canBeSoldToTrader)
+					{
+						AppendNewLineToTooltipText(ref text);
+					}
+
+					if (canBeSoldToFlea)
+					{
+						AppendTextToToolip(ref text, $"Sell to Flea with Alt+Shift+Right Click", "#888888");
+					}
+				}
+			}
+
+
 		}
 
 		private static void AppendNewLineToTooltipText(ref string tooltipText)
@@ -894,6 +974,16 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		private static void AppendTextToToolip(ref string tooltipText, string addText, string color)
 		{
 			tooltipText += $"<color={color}>{addText}</color>";
+		}
+
+		private static void StartSizeTag(ref string tooltipText, int size)
+		{
+			tooltipText += $"<size={size}>";
+		}
+
+		private static void EndSizeTag(ref string tooltipText)
+		{
+			tooltipText += $"</size>";
 		}
 	}
 }
