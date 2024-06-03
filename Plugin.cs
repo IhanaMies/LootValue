@@ -937,24 +937,23 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				}
 
+			}
 
-				var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
-				if (isInRaid && shouldShowPricePerSlotAndPerKgInRaid)
-				{
+			var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
+			if (isInRaid && shouldShowPricePerSlotAndPerKgInRaid)
+			{
 
-					var price = isTraderPriceHigherThanFlea ? finalTraderPrice : finalFleaPrice;
-					var pricePerSlot = isTraderPriceHigherThanFlea ? pricePerSlotTrader : pricePerSlotFlea;
-					var pricePerWeight = (int)(price / hoveredItem.GetSingleItemTotalWeight());
+				var pricePerSlot = sellToTrader ? pricePerSlotTrader : pricePerSlotFlea;
+				var unitPrice = sellToTrader ? (finalTraderPrice / stackAmount) : GetUnitPriceOfItem(hoveredItem);
+				var pricePerWeight = (int)(unitPrice / hoveredItem.GetSingleItemTotalWeight());
 
-					AppendSeparator(ref text, "#555555");
+				AppendSeparator(ref text, "#555555");
 
-					StartSizeTag(ref text, 11);
-					AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
-					AppendNewLineToTooltipText(ref text);
-					AppendTextToToolip(ref text, $"₽ / SLOT\t{pricePerSlot.FormatNumber()}", "#555555");
-					EndSizeTag(ref text);
-
-				}
+				StartSizeTag(ref text, 11);
+				AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
+				AppendNewLineToTooltipText(ref text);
+				AppendTextToToolip(ref text, $"₽ / SLOT\t{pricePerSlot.FormatNumber()}", "#555555");
+				EndSizeTag(ref text);
 
 			}
 
