@@ -750,7 +750,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			// we only get the base flea price for the base item, even if it's a weapon
 			int finalFleaPrice = GetTotalPriceOfItem(hoveredItem);
-			bool canBeSoldToFlea = finalFleaPrice == 0;
+			bool canBeSoldToFlea = finalFleaPrice > 0;
 
 			// trader offer might be null because the item can't be sold (for any reason whatsoever), so if it's null we consider 0 trader value to avoid null checks
 			int finalTraderPrice = 0;
@@ -759,7 +759,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			{
 				finalTraderPrice = bestTraderOffer.Price;
 			}
-			bool canBeSoldToTrader = finalFleaPrice == 0;
+			bool canBeSoldToTrader = finalTraderPrice > 0;
 
 			// determine price per slot for each sale type				
 			var size = hoveredItem.CalculateCellSize();
@@ -796,8 +796,11 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				showTraderPrice = false;
 			}
 
-			AppendNewLineToTooltipText(ref text);
-			AppendTextToToolip(ref text, "--------------------", "#444444");
+			if (canBeSoldToTrader || canBeSoldToFlea)
+			{
+				AppendNewLineToTooltipText(ref text);
+				AppendTextToToolip(ref text, "--------------------", "#444444");
+			}
 
 			// append trader price on tooltip
 			if (showTraderPrice)
@@ -817,7 +820,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				if (stackAmount > 1)
 				{
-					var unitPrice = $" ({(finalTraderPrice / stackAmount).FormatNumber()})";
+					var unitPrice = $" (₽ {(finalTraderPrice / stackAmount).FormatNumber()} e.)";
 					AppendTextToToolip(ref text, unitPrice, "#333333");
 				}
 
@@ -868,7 +871,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				if (stackAmount > 1)
 				{
-					var unitPrice = $" ({GetUnitPriceOfItem(hoveredItem).FormatNumber()})";
+					var unitPrice = $" (₽ {GetUnitPriceOfItem(hoveredItem).FormatNumber()} e.)";
 					AppendTextToToolip(ref text, unitPrice, "#333333");
 				}
 
@@ -896,8 +899,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				}
 
 
-				var shouldShowPricePerSlotAndPerKg = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
-				if (/* isInRaid && */ shouldShowPricePerSlotAndPerKg)
+				var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
+				if (isInRaid && shouldShowPricePerSlotAndPerKgInRaid)
 				{
 
 					var price = isTraderPriceHigherThanFlea ? finalTraderPrice : finalFleaPrice;
@@ -905,13 +908,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					var pricePerWeight = (int)(price / hoveredItem.GetSingleItemTotalWeight());
 
 					AppendNewLineToTooltipText(ref text);
-					AppendTextToToolip(ref text, "--------------------", "#444444");
+					AppendTextToToolip(ref text, "--------------------", "#555555");
 					AppendNewLineToTooltipText(ref text);
-					
-					StartSizeTag(ref text, 10);
-					AppendTextToToolip(ref text, $"₽ / KG: {pricePerWeight.FormatNumber()}", "#444444");
+
+					StartSizeTag(ref text, 11);
+					AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
 					AppendNewLineToTooltipText(ref text);
-					AppendTextToToolip(ref text, $"₽ / SL: {pricePerSlot.FormatNumber()}", "#444444");
+					AppendTextToToolip(ref text, $"₽ / SLOT\t{pricePerSlot.FormatNumber()}", "#555555");
 					EndSizeTag(ref text);
 
 				}
@@ -928,7 +931,9 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				if (quickSellUsesOneButton)
 				{
 
-					bool willBeSoldAfterClicking = (!sellToTrader && canBeSoldToFlea) || (sellToTrader && canBeSoldToTrader);
+					bool willBeSoldAfterClicking = (!sellToTrader && canBeSoldToFlea) ||
+												   (sellToTrader && canBeSoldToTrader);
+
 					if (willBeSoldAfterClicking)
 					{
 						AppendNewLineToTooltipText(ref text);
