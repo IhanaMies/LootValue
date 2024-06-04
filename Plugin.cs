@@ -91,7 +91,7 @@ namespace LootValue
 		internal static ConfigEntry<bool> HideLowerPrice;
 		internal static ConfigEntry<bool> HideLowerPriceInRaid;
 
-
+		internal static ConfigEntry<bool> ReducePriceInFleaForBrokenItem;
 
 		private void SetupConfig()
 		{
@@ -103,6 +103,7 @@ namespace LootValue
 			ShowPricePerKgAndPerSlotInRaid = Config.Bind("0. Item Prices", "3. Show price per KG & price per slot in raid", false);
 			HideLowerPrice = Config.Bind("0. Item Prices", "4. Hide lower price", false);
 			HideLowerPriceInRaid = Config.Bind("0. Item Prices", "5. Hide lower price in raid", false);
+			ReducePriceInFleaForBrokenItem = Config.Bind("0. Item Prices", "6. Lower price for items that have missing durability", true);
 
 			// General: Quick Sell
 			EnableQuickSell = Config.Bind("1. Quick Sell", "0. Enable quick sell", true, "Sell any item(s) instantly using the key combination described in 'One button quick sell'.");
@@ -174,6 +175,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			if (!Session.Profile.Examined(item))
 				return null;
 
+			// TODO: Always clone item and empty it (?) so we can reliably check base item price on trader
 			switch (item.Owner?.OwnerType)
 			{
 				case EOwnerType.RagFair:
@@ -189,6 +191,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			TraderOffer highestOffer = null;
 
+			// TODO refactor, arent they equal
 			if (item is Weapon weapon)
 			{
 				foreach (TraderClass trader in Session.Traders)
@@ -303,8 +306,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				return false;
 			}
 
-			var fleaPrice = GetFleaValue(item);
-			if (fleaPrice == 0)
+			// we need to check if the base item is sellable
+			if (!item.Template.CanSellOnRagfair)
 			{
 
 				if (displayWarning)
@@ -322,6 +325,16 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				return false;
 			}
 
+			if (item.IsNotEmpty())
+			{
+
+				if (displayWarning)
+					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is not empty.");
+
+				return false;
+
+			}
+
 			if (ContainsNonFleableItemsInside(item))
 			{
 
@@ -330,6 +343,16 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				return false;
 			}
+
+			// fallback as any other reason will get caught here
+			if (!item.CanSellOnRagfair)
+			{
+				if (displayWarning)
+					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item can't be sold right now.");
+
+				return false;
+			}
+
 
 			return true;
 		}
@@ -351,22 +374,27 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			return (int)price.Value;
 		}
 
-		public static int GetUnitPriceOfItem(Item item, bool reduceWithCondition = true)
+		public static int GetFleaMarketUnitPrice(Item item)
 		{
+			if(!item.Template.CanSellOnRagfair) {
+				return 0;
+			}
+
 			int unitPrice = GetFleaValue(item);
-
-			float resourcePercentage = GetResourcePercentageOfItem(item);
-
-			var reducedPrice = unitPrice * resourcePercentage;
-
-			return (int)reducedPrice;
+			return unitPrice;
 		}
 
-		public static int GetTotalPriceOfItem(Item item)
+		public static int GetFleaMarketUnitPriceWithModifiers(Item item) 
 		{
-			var amountOfItems = item.StackObjectsCount;
-			var unitPrice = GetUnitPriceOfItem(item);
-			return unitPrice * amountOfItems;
+			int price = GetFleaMarketUnitPrice(item);
+
+			bool applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
+			if(applyConditionReduction) 
+			{
+				price = (int) (price * GetResourcePercentageOfItem(hoveredItem));
+			}
+
+			return price;
 		}
 
 		public static float GetResourcePercentageOfItem(Item item)
@@ -418,11 +446,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		public static bool ItemBelongsToTraderOrFleaMarketOrMail(Item item)
 		{
 
-			if(item == null) {
+			if (item == null)
+			{
 				return false;
 			}
 
-			if(item.Owner == null) {
+			if (item.Owner == null)
+			{
 				return false;
 			}
 
@@ -457,15 +487,18 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		public static IEnumerable<Item> GetItemsSimilarToItemWithinSameContainer(Item item)
 		{
 
-			if(item == null) {
+			if (item == null)
+			{
 				return Enumerable.Empty<Item>();
 			}
 
-			if(item.Parent == null) {
+			if (item.Parent == null)
+			{
 				return Enumerable.Empty<Item>();
 			}
 
-			if(item.Parent.Container == null) {
+			if (item.Parent.Container == null)
+			{
 				return Enumerable.Empty<Item>();
 			}
 
@@ -540,43 +573,42 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 
 
-		public static void SellToFlea(Item baseItem, IEnumerable<Item> items)
+		public static void SellToFlea(Item itemToCheck, IEnumerable<Item> itemsToSell)
 		{
-			if (!CanBeSoldInFleaRightNow(baseItem))
+			if (!CanBeSoldInFleaRightNow(itemToCheck))
 			{
 				return;
 			}
 
-			var price = GetUnitPriceOfItem(baseItem);
-			var g = new FleaRequirement()
-			{
-				count = price - 1, //undercut by 1 ruble
-				_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
-			};
+			var price = GetFleaMarketUnitPriceWithModifiers(itemToCheck);
+			var ids = itemsToSell.Select(i => i.Id).ToArray();
 
-			FleaRequirement[] gs = new FleaRequirement[1] { g };
-			Globals.Session.RagFair.AddOffer(false, items.Select(i => i.Id).ToArray(), gs, null);
+			ApplyFleaOffer(price, ids);
 		}
 
-		public static bool SellToFlea(Item item)
+		public static void SellToFlea(Item itemToSell)
 		{
-			if (!CanBeSoldInFleaRightNow(item))
+			if (!CanBeSoldInFleaRightNow(itemToSell))
 			{
-				return false;
+				return;
 			}
 
-			var price = GetUnitPriceOfItem(item);
-			var g = new FleaRequirement()
+			var price = GetFleaMarketUnitPriceWithModifiers(itemToSell);
+			var ids = new string[1] { itemToSell.Id };
+
+			ApplyFleaOffer(price, ids);
+		}
+
+		private static void ApplyFleaOffer(int price, string[] itemIds)
+		{
+			var offerRequeriment = new FleaRequirement()
 			{
 				count = price - 1, //undercut by 1 ruble
 				_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
 			};
 
-			FleaRequirement[] gs = new FleaRequirement[1] { g };
-			Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
-
-			return true;
-
+			FleaRequirement[] offer = new FleaRequirement[1] { offerRequeriment };
+			Globals.Session.RagFair.AddOffer(false, itemIds, offer, null);
 		}
 	}
 
@@ -676,14 +708,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 							if (button == PointerEventData.InputButton.Left)
 							{
 
-								// no trader will purchase it, that means it contains items, as even fence will buy broken items
-								if (!WillBePurchasableByAtLeastOneTrader(item) && fleaValue > 0)
-								{
-									NotificationManagerClass.DisplayWarningNotification("Can't sell item: item is not empty.");
-									return false;
-								}
-
-								int priceOnFlea = GetTotalPriceOfItem(item);
+								int priceOnFlea = GetFleaMarketUnitPriceWithModifiers(item) * item.StackObjectsCount;
 								int priceOnTrader = bestTraderOffer.Price;
 
 								if (priceOnFlea > priceOnTrader)
@@ -707,14 +732,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 							}
 							else if (button == PointerEventData.InputButton.Right)
 							{
-
-								// no trader will purchase it, that means it contains items, as even fence will buy broken items
-								if (!WillBePurchasableByAtLeastOneTrader(item) && fleaValue > 0)
-								{
-									NotificationManagerClass.DisplayWarningNotification("Can't sell item: item is not empty.");
-									return false;
-								}
-
 								runOriginalMethod = false;
 								SellFleaItemOrMultipleItemsIfEnabled(item);
 							}
@@ -787,12 +804,14 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 
 			int stackAmount = hoveredItem.StackObjectsCount;
+			bool isItemEmpty = hoveredItem.IsEmpty();
+			bool applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
 
-			// we only get the base flea price for the base item, even if it's a weapon
-			int finalFleaPrice = GetTotalPriceOfItem(hoveredItem);
+			int finalFleaPrice = GetFleaMarketUnitPriceWithModifiers(hoveredItem) * hoveredItem.StackObjectsCount;
 			bool canBeSoldToFlea = finalFleaPrice > 0;
 
 			// trader offer might be null because the item can't be sold (for any reason whatsoever), so if it's null we consider 0 trader value to avoid null checks
+			// TODO: refactor GetBestTraderOffer and decouple and just get number (0 if no trader buys it)
 			int finalTraderPrice = 0;
 			var bestTraderOffer = GetBestTraderOffer(hoveredItem);
 			if (bestTraderOffer != null)
@@ -813,13 +832,25 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			bool isFleaPriceHigherThanTrader = finalFleaPrice > finalTraderPrice;
 			bool sellToTrader = isTraderPriceHigherThanFlea;
 
-			// If both trader and flea are 0, then the item is not purchasable
-			// Either it is actually not purchasable or the item has items inside.
-			// We can't reliably check this for now.
+			// If both trader and flea are 0, then the item is not purchasable.
 			if (!canBeSoldToTrader && !canBeSoldToFlea)
 			{
-				AppendNewLineToTooltipText(ref text);
-				AppendTextToToolip(ref text, "(Item can't be sold)", "#AA3333");
+				// TODO: trader price should be given even if the object is empty, so we can remove this edge case entirely
+				if (!isItemEmpty)
+				{
+					StartSizeTag(ref text, 11);
+					AppendNewLineToTooltipText(ref text);
+					AppendTextToToolip(ref text, "(Can't get trader price: not empty)", "#AA3333");
+					EndSizeTag(ref text);
+				}
+				else
+				{
+					StartSizeTag(ref text, 11);
+					AppendNewLineToTooltipText(ref text);
+					AppendTextToToolip(ref text, "(Item can't be sold)", "#AA3333");
+					EndSizeTag(ref text);
+				}
+				return;
 			}
 
 			var showTraderPrice = true;
@@ -898,19 +929,22 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				AppendTextToToolip(ref text, fleaName, fleaNameColor);
 				AppendTextToToolip(ref text, $"₽ {finalFleaPrice.FormatNumber()}", fleaPricePerSlotColor);
 
-				// TODO: make reduce flea price based on durability configurable
-				// TODO: make an alternative view cfg so instead of seeing missing durability you see total price (reducedPrice)
-				var durability = GetResourcePercentageOfItem(hoveredItem);
-				var missingDurability = 100 - durability * 100;
-				if ((int)missingDurability > 0)
+				if(applyConditionReduction) 
 				{
-					var reducedPrice = $" (-{(int)missingDurability}%)";
-					AppendTextToToolip(ref text, reducedPrice, "#AA1111");
+						var durability = GetResourcePercentageOfItem(hoveredItem);
+						var missingDurability = 100 - durability * 100;
+						if ((int) missingDurability > 0)
+						{
+							var missingDurabilityText = $" (-{(int)missingDurability}%)";
+							AppendTextToToolip(ref text, missingDurabilityText, "#AA1111");
+						}
 				}
+
+				
 
 				if (stackAmount > 1)
 				{
-					var unitPrice = $" (₽ {GetUnitPriceOfItem(hoveredItem).FormatNumber()} e.)";
+					var unitPrice = $" (₽ {GetFleaMarketUnitPriceWithModifiers(hoveredItem).FormatNumber()} e.)";
 					AppendTextToToolip(ref text, unitPrice, "#333333");
 				}
 
@@ -920,18 +954,23 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				if (!isInRaid && !isTraderPriceHigherThanFlea)
 				{
 
-					if (!WillBePurchasableByAtLeastOneTrader(hoveredItem))
+					if (!isItemEmpty)
 					{
 						// If the item can be sold on flea, but no trader will buy it, then most likely the item is not empty, as even Fence will accept broken items
+						StartSizeTag(ref text, 11);
 						AppendNewLineToTooltipText(ref text);
 						AppendTextToToolip(ref text, "(Item is not empty)", "#AA3333");
+						EndSizeTag(ref text);
 						canBeSoldToFlea = false;
 					}
-					else if (ContainsNonFleableItemsInside(hoveredItem))
+
+					if (ContainsNonFleableItemsInside(hoveredItem))
 					{
 						// We can already know if any item inside this item wont be able to be sold on the flea market
+						StartSizeTag(ref text, 11);
 						AppendNewLineToTooltipText(ref text);
-						AppendTextToToolip(ref text, "(Incompatible Items Inside)", "#AA3333");
+						AppendTextToToolip(ref text, "(Incompatible items Inside)", "#AA3333");
+						EndSizeTag(ref text);
 						canBeSoldToFlea = false;
 					}
 
@@ -939,12 +978,14 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			}
 
+			// TODO: add a CFG message if item is banned from fleamarket using hoveredItem.Template.CanSellOnRagfair
+
 			var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
 			if (isInRaid && shouldShowPricePerSlotAndPerKgInRaid)
 			{
 
 				var pricePerSlot = sellToTrader ? pricePerSlotTrader : pricePerSlotFlea;
-				var unitPrice = sellToTrader ? (finalTraderPrice / stackAmount) : GetUnitPriceOfItem(hoveredItem);
+				var unitPrice = sellToTrader ? (finalTraderPrice / stackAmount) : GetFleaMarketUnitPriceWithModifiers(hoveredItem);
 				var pricePerWeight = (int)(unitPrice / hoveredItem.GetSingleItemTotalWeight());
 
 				AppendSeparator(ref text, "#555555");
@@ -1049,6 +1090,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			}
 		}
 
+		// TODO: add a method that adds a warning ( parenthesis with size 11 and color red )
+		// TODO: add a method that appends a whole -line- with color and size
 
 	}
 }
