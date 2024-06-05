@@ -259,22 +259,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			return item.GetAllItems().Any(i => i.Template.CanSellOnRagfair == false);
 		}
 
-		public static bool IsContainerEmpty(Item item)
-		{
-
-			if (!item.IsContainer)
-			{
-				return false;
-			}
-
-			if (item.GetFirstLevelItems().Count > 1)
-			{
-				return false;
-			}
-
-			return true;
-		}
-
 		public static bool CanBeSoldInFleaRightNow(Item item, bool displayWarning = true)
 		{
 
@@ -779,7 +763,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			bool isItemEmpty = hoveredItem.IsEmpty();
 			bool applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
 
-			int finalFleaPrice = GetFleaMarketUnitPriceWithModifiers(hoveredItem) * hoveredItem.StackObjectsCount;
+			int finalFleaPrice = GetFleaMarketUnitPriceWithModifiers(hoveredItem) * stackAmount;
 			bool canBeSoldToFlea = finalFleaPrice > 0;
 
 			var finalTraderPrice = GetBestTraderPrice(hoveredItem);
@@ -796,6 +780,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			bool isTraderPriceHigherThanFlea = finalTraderPrice > finalFleaPrice;
 			bool isFleaPriceHigherThanTrader = finalFleaPrice > finalTraderPrice;
 			bool sellToTrader = isTraderPriceHigherThanFlea;
+			bool sellToFlea = !sellToTrader;
 
 			// If both trader and flea are 0, then the item is not purchasable.
 			if (!canBeSoldToTrader && !canBeSoldToFlea)
@@ -834,8 +819,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				// append trader price
 				var traderName = $"Trader: ";
 				var traderNameColor = sellToTrader ? "#ffffff" : "#444444";
-				var traderPricePerSlotColor = isTraderPriceHigherThanFlea ? SlotColoring.GetColorFromValuePerSlots(pricePerSlotTrader) : "#444444";
-				var fontSize = isTraderPriceHigherThanFlea ? 14 : 10;
+				var traderPricePerSlotColor = sellToTrader ? SlotColoring.GetColorFromValuePerSlots(pricePerSlotTrader) : "#444444";
+				var fontSize = sellToTrader ? 14 : 10;
 
 				StartSizeTag(ref text, fontSize);
 
@@ -875,9 +860,9 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				// append flea price
 				var fleaName = $"Flea: ";
-				var fleaNameColor = sellToTrader ? "#444444" : "#ffffff";
-				var fleaPricePerSlotColor = isTraderPriceHigherThanFlea ? "#444444" : SlotColoring.GetColorFromValuePerSlots(pricePerSlotFlea);
-				var fontSize = isTraderPriceHigherThanFlea ? 10 : 14;
+				var fleaNameColor = sellToFlea ? "#ffffff" : "#444444";
+				var fleaPricePerSlotColor = sellToFlea ? SlotColoring.GetColorFromValuePerSlots(pricePerSlotFlea) : "#444444";
+				var fontSize = sellToFlea ? 14 : 10;
 
 				StartSizeTag(ref text, fontSize);
 
@@ -953,17 +938,17 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			bool quickSellEnabled = LootValueMod.EnableQuickSell.Value;
 			bool quickSellUsesOneButton = LootValueMod.OneButtonQuickSell.Value;
-			bool showQuickSaleCommands = quickSellEnabled && !isInRaid && !ItemBelongsToTraderOrFleaMarketOrMail(hoveredItem);
+			bool showQuickSaleCommands = quickSellEnabled && !isInRaid;
 
 			if (showQuickSaleCommands)
 			{
 				if (quickSellUsesOneButton)
 				{
 
-					bool willBeSoldAfterClicking = (!sellToTrader && canBeSoldToFlea) ||
+					bool canBeSold = (sellToFlea && canBeSoldToFlea) ||
 													 (sellToTrader && canBeSoldToTrader);
 
-					if (willBeSoldAfterClicking)
+					if (canBeSold)
 					{
 						AppendSeparator(ref text);
 						AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
@@ -992,7 +977,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					}
 				}
 
-				if (!sellToTrader && canBeSoldToFlea)
+				bool allowSellSimilarItemsFIR = LootValueMod.SellAllItemsFindInRaid.Value;
+				if (sellToFlea && canBeSoldToFlea && allowSellSimilarItemsFIR && hoveredItem.MarkedAsSpawnedInSession)
 				{
 
 					// append only if more than 1 item will be sold due to the flea market action
