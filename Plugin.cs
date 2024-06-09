@@ -79,7 +79,8 @@ namespace LootValue
 		internal static ConfigEntry<bool> UseCustomColours;
 		internal static ConfigEntry<string> CustomColours;
 		internal static ConfigEntry<bool> EnableQuickSell;
-		internal static ConfigEntry<bool> SellAllItemsFindInRaid;
+		internal static ConfigEntry<bool> SellSimilarItems;
+		internal static ConfigEntry<bool> SellOnlySimilarItemsFiR;
 		internal static ConfigEntry<bool> OneButtonQuickSell;
 
 		internal static ConfigEntry<bool> ShowFleaPricesInRaid;
@@ -120,8 +121,9 @@ namespace LootValue
 If enabled:
 [Alt + Shift + Left Click] sells to either depending on who pays more");
 
-			SellAllItemsFindInRaid = Config.Bind("1. Quick Sell", "2. Sell all similar FiR items in one go", false, "If you sell one FiR item and have multiple of the same, they will all be sold simultaneously.");
-			IgnoreFleaMaxOfferCount = Config.Bind("1. Quick Sell", "3. Ignore flea max offer count", false);
+			SellSimilarItems = Config.Bind("1. Quick Sell", "2. Sell all similar items in one go", false, "If you sell one item and have multiple of the same, they will all be sold simultaneously.");
+			SellOnlySimilarItemsFiR = Config.Bind("1. Quick Sell", "3. Only sell similar items if they are all FiR", false, "If this is enabled, sell multiple will only work select FiR items.");
+			IgnoreFleaMaxOfferCount = Config.Bind("1. Quick Sell", "4. Ignore flea max offer count", false);
 
 			// Prices custom colors
 			UseCustomColours = Config.Bind("3. Price Per Slot Colours", "0. Use custom colours per slot", false);
@@ -447,6 +449,25 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			return EOwnerType.Profile.Equals(ownerType);
 		}
 
+		public static bool CanSellMultipleOfItem(Item item) {
+
+			bool sellMultipleEnabled = LootValueMod.SellSimilarItems.Value;
+			bool sellMultipleOnlyFiR = LootValueMod.SellOnlySimilarItemsFiR.Value;
+			bool isItemFindInRaid = item.MarkedAsSpawnedInSession;
+
+			if(!sellMultipleEnabled) {
+				return false;
+			}
+			
+
+			if(sellMultipleOnlyFiR && !isItemFindInRaid) {
+				return false; 
+			}
+
+			return true;
+		}
+
+
 		/**
 		* Includes original item!
 		*/
@@ -469,7 +490,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			}
 
 			var itemsOfParent = item.Parent.Container.Items;
-			return itemsOfParent.Where(o => item.Compare(o) && o.MarkedAsSpawnedInSession);
+			return itemsOfParent.Where(o => item.Compare(o) && o.MarkedAsSpawnedInSession == item.MarkedAsSpawnedInSession);
 		}
 
 		/**
@@ -482,20 +503,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 		public static void SellFleaItemOrMultipleItemsIfEnabled(Item item)
 		{
-
-			// If I click on one FiR item, it will attempt to sell all the same items (FiR) in the same flea offer
-			if (LootValueMod.SellAllItemsFindInRaid.Value && item.MarkedAsSpawnedInSession)
-			{
-				logger.Log(LogLevel.Info, $"1 Selling multiple items");
-				var itemsSimilarToTheOneImSelling = GetItemsSimilarToItemWithinSameContainer(item);
-				SellToFlea(item, itemsSimilarToTheOneImSelling);
-			}
-			else
-			{
-				logger.Log(LogLevel.Info, $"1 Selling one item");
+			if(!CanSellMultipleOfItem(item)) {
 				SellToFlea(item);
+				return;
 			}
 
+			var itemsSimilarToTheOneImSelling = GetItemsSimilarToItemWithinSameContainer(item);
+			SellToFlea(item, itemsSimilarToTheOneImSelling);
 		}
 
 		public static void SellToTrader(Item item)
@@ -668,6 +682,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 								int priceOnFlea = GetFleaMarketUnitPriceWithModifiers(item) * item.StackObjectsCount;
 
 								// TODO: make a cfg feature that always sells to trader if item is empty (fuel) or weapon is non operational
+								// TODO: make a cfg to allow minimum for ALWAYS selling to trader
 
 								if (priceOnFlea > traderPrice)
 								{
@@ -985,10 +1000,9 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					}
 				}
 
-				bool allowSellSimilarItemsFIR = LootValueMod.SellAllItemsFindInRaid.Value;
-				if (sellToFlea && canBeSoldToFlea && allowSellSimilarItemsFIR && hoveredItem.MarkedAsSpawnedInSession)
+				bool canSellSimilarItems = CanSellMultipleOfItem(hoveredItem);
+				if (sellToFlea && canBeSoldToFlea && canSellSimilarItems)
 				{
-
 					// append only if more than 1 item will be sold due to the flea market action
 					var amountOfItems = CountItemsSimilarToItemWithinSameContainer(hoveredItem);
 					if (amountOfItems > 1)
