@@ -192,7 +192,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			// this seems to work to Everything but armored rigs
 			// If the item is not empty, it will not properly calculate the offer
-			// For some reason it works for armors but not for armored rigs
+			// For some reason it works for armors, weapons, helmets, but not for armored rigs
 			var clone = item.CloneVisibleItem();
 			clone.UnlimitedCount = false;
 
@@ -266,7 +266,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			{
 
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Flea market is not enabled.");
+					NotificationManagerClass.DisplayWarningNotification("Quicksell: Flea market is not available yet.");
 
 				return false;
 			}
@@ -276,7 +276,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			{
 
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item can't be sold on flea.");
+					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is banned from flea market.");
 
 				return false;
 			}
@@ -304,7 +304,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			{
 
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item contains forbidden fleamarket items.");
+					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item contains banned fleamarket items.");
 
 				return false;
 			}
@@ -667,6 +667,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 								int priceOnFlea = GetFleaMarketUnitPriceWithModifiers(item) * item.StackObjectsCount;
 
+								// TODO: make a cfg feature that always sells to trader if item is empty (fuel) or weapon is non operational
+
 								if (priceOnFlea > traderPrice)
 								{
 									runOriginalMethod = false;
@@ -776,19 +778,25 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			int pricePerSlotTrader = finalTraderPrice / slots;
 			int pricePerSlotFlea = finalFleaPrice / slots;
 
-			// so we determine which one is non highlighted
+			
 			bool isTraderPriceHigherThanFlea = finalTraderPrice > finalFleaPrice;
 			bool isFleaPriceHigherThanTrader = finalFleaPrice > finalTraderPrice;
 			bool sellToTrader = isTraderPriceHigherThanFlea;
 			bool sellToFlea = !sellToTrader;
 
+			// TODO: add a cfg that if the item is empty (fuel) or non operational (weapon) it sells to trader always
+			/*if(IsWeaponNonOperational() || IsFuelEmpty()) {
+				isTraderPriceHigherThanFlea = true;
+				isFleaPriceHigherThanTrader = false;
+				sellToTrader = true;
+				sellToFlea = false;
+				AppendFullLineToTooltip(ref text, "(Item is non operational)", 11, "#AA3333");
+			}*/
+
 			// If both trader and flea are 0, then the item is not purchasable.
 			if (!canBeSoldToTrader && !canBeSoldToFlea)
 			{
-				StartSizeTag(ref text, 11);
-				AppendNewLineToTooltipText(ref text);
-				AppendTextToToolip(ref text, "(Item can't be sold)", "#AA3333");
-				EndSizeTag(ref text);
+				AppendFullLineToTooltip(ref text, "(Item can't be sold)", 11, "#AA3333");
 				return;
 			}
 
@@ -894,7 +902,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				{
 					if (ContainsNonFleableItemsInside(hoveredItem))
 					{
-						AppendFullLineToTooltip(ref text, "(Incompatible items Inside)", 11, "#AA3333");
+						AppendFullLineToTooltip(ref text, "(Contains banned flea items inside)", 11, "#AA3333");
 						canBeSoldToFlea = false;
 					}
 
@@ -985,10 +993,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					var amountOfItems = CountItemsSimilarToItemWithinSameContainer(hoveredItem);
 					if (amountOfItems > 1)
 					{
-						AppendNewLineToTooltipText(ref text);
-						StartSizeTag(ref text, 10);
-						AppendTextToToolip(ref text, $"(Will sell {amountOfItems} similar items)", "#555555");
-						EndSizeTag(ref text);
+						AppendFullLineToTooltip(ref text, $"(Will sell {amountOfItems} similar items)", 10, "#555555");
 					}
 
 				}
@@ -1041,7 +1046,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		}
 
 		// TODO: add a method that adds a warning ( parenthesis with size 11 and color red )
-		// TODO: add a method that appends a whole -line- with color and size
 
 	}
 }
