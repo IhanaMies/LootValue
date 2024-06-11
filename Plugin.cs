@@ -681,8 +681,18 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 								int priceOnFlea = GetFleaMarketUnitPriceWithModifiers(item) * item.StackObjectsCount;
 
-								// TODO: make a cfg feature that always sells to trader if item is empty (fuel) or weapon is non operational
+								// TODO: make a cfg feature that always sells to trader if weapon is non operational
 								// TODO: make a cfg to allow minimum for ALWAYS selling to trader
+								// TODO: make a cfg to allow sell to trader below X durability
+								/*
+								bool shouldSellToTraderDueToBeingNonOperational = IsWeaponNonOperational(hoveredItem) && CFG.SellToTraderIfWeaponIsBad == true;
+								bool shouldSellToTraderDueToDurabilityThreshold = IsBelowDurabilityThreshold(hoveredItem) && CFG.SellToTraderIfBelowThreshold == true;
+								bool shouldSellToTraderDueToPriceThreshold = IsItemBelowConfiguredFleaMarketPriceThreshold(hoveredItem) && CFG.SellBelowThresholdEnabled == true;
+								if(shouldSellToTraderDueToBeingNonOperational || shouldSellToTraderDueToDurabilityThreshold || shouldSellToTraderDueToPriceThreshold) {
+									priceOnFlea = 0;
+								}
+								*/
+
 
 								if (priceOnFlea > traderPrice)
 								{
@@ -799,14 +809,19 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			bool sellToTrader = isTraderPriceHigherThanFlea;
 			bool sellToFlea = !sellToTrader;
 
-			// TODO: add a cfg that if the item is empty (fuel) or non operational (weapon) it sells to trader always
-			/*if(IsWeaponNonOperational() || IsFuelEmpty()) {
+			// TODO: add a two cfgs that if the item is non operational (weapon) or below certain durability it sells to trader always
+			/*
+			bool shouldSellToTraderDueToBeingNonOperational = IsWeaponNonOperational(hoveredItem) && CFG.SellToTraderIfWeaponIsBad == true;
+			bool shouldSellToTraderDueToDurabilityThreshold = IsBelowDurabilityThreshold(hoveredItem) && CFG.SellToTraderIfBelowThreshold == true;
+			bool shouldSellToTraderDueToPriceThreshold = IsItemBelowConfiguredFleaMarketPriceThreshold(hoveredItem) && CFG.SellBelowThresholdEnabled == true;
+			if(shouldSellToTraderDueToBeingNonOperational || shouldSellToTraderDueToDurabilityThreshold || shouldSellToTraderDueToPriceThreshold) {
 				isTraderPriceHigherThanFlea = true;
 				isFleaPriceHigherThanTrader = false;
 				sellToTrader = true;
 				sellToFlea = false;
-				AppendFullLineToTooltip(ref text, "(Item is non operational)", 11, "#AA3333");
-			}*/
+				AppendFullLineToTooltip(ref text, "(Will be sold to trader due to condition)", 11, "#AAAA33");
+			}
+			*/
 
 			// If both trader and flea are 0, then the item is not purchasable.
 			if (!canBeSoldToTrader && !canBeSoldToFlea)
