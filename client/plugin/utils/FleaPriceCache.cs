@@ -1,19 +1,15 @@
 ﻿using Aki.Common.Http;
-using Aki.Common.Utils;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
-using static LootValue.Globals;
-using static System.Collections.Specialized.BitVector32;
+using Aki.Reflection.Utils;
 
 namespace LootValue
 {
 	internal static class FleaPriceCache
 	{
 		static Dictionary<string, CachePrice> cache = new Dictionary<string, CachePrice>();
+		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
 
 		public static int? FetchPrice(string templateId)
 		{
