@@ -1,25 +1,21 @@
 ﻿using Aki.Common.Http;
-using Aki.Common.Utils;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
-using static LootValue.Globals;
-using static System.Collections.Specialized.BitVector32;
+using Aki.Reflection.Utils;
 
 namespace LootValue
 {
 	internal static class FleaPriceCache
 	{
 		static Dictionary<string, CachePrice> cache = new Dictionary<string, CachePrice>();
+		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
 
-		public static double? FetchPrice(string templateId)
+		public static int? FetchPrice(string templateId)
 		{
 			bool fleaAvailable = Session.RagFair.Available || LootValueMod.ShowFleaPriceBeforeAccess.Value;
 
-			if (!fleaAvailable || !LootValueMod.EnableFleaQuickSell.Value)
+			if (!fleaAvailable)
 				return null;
 
 			if (cache.ContainsKey(templateId))
@@ -39,40 +35,42 @@ namespace LootValue
 			return RequestHandler.PostJson("/LootValue/GetItemLowestFleaPrice", JsonConvert.SerializeObject(new FleaPriceRequest(templateId)));
 		}
 
-		private static double? QueryAndTryUpsertPrice(string templateId, bool update)
+		private static int? QueryAndTryUpsertPrice(string templateId, bool update)
 		{
 			string response = QueryPrice(templateId);
-
 			bool hasPlayerFleaPrice = !(string.IsNullOrEmpty(response) || response == "null");
 
+			int price;
 			if (hasPlayerFleaPrice)
 			{
-				double price = double.Parse(response);
-
-				if (update)
-					cache[templateId].Update(price);
-				else
-					cache[templateId] = new CachePrice(price);
-
-				return price;
+				price = int.Parse(response);
+			}
+			else
+			{
+				price = 0;
 			}
 
-			return null;
+			if (update)
+				cache[templateId].Update(price);
+			else
+				cache[templateId] = new CachePrice(price);
+
+			return price;
 		}
 	}
 
 	internal class CachePrice
 	{
-		public double price { get; private set; }
+		public int price { get; private set; }
 		public DateTime lastUpdate { get; private set; }
 
-		public CachePrice(double price)
+		public CachePrice(int price)
 		{
 			this.price = price;
 			lastUpdate = DateTime.Now;
 		}
 
-		public void Update(double price)
+		public void Update(int price)
 		{
 			this.price = price;
 			lastUpdate = DateTime.Now;
