@@ -102,18 +102,15 @@ namespace LootValue
 					return;
 				}
 
-				if (sellToFlea)
+				if (sellToFlea && TraderUtils.ShouldSellToTraderDueToPriceOrCondition(item) && !isInRaid)
 				{
-					if (TraderUtils.ShouldSellToTraderDueToPriceOrCondition(item))
-					{
-						isTraderPriceHigherThanFlea = true;
-						isFleaPriceHigherThanTrader = false;
-						sellToTrader = true;
-						sellToFlea = false;
+					isTraderPriceHigherThanFlea = true;
+					isFleaPriceHigherThanTrader = false;
+					sellToTrader = true;
+					sellToFlea = false;
 
-						var reason = GetReasonForItemToBeSoldToTrader(item);
-                        AppendFullLineToTooltip(ref text, $"(<b>Trader</b> price selected {reason})", 11, "#AAAA33");
-					}
+					var reason = GetReasonForItemToBeSoldToTrader(item);
+					AppendFullLineToTooltip(ref text, $"(<b>Trader</b> price selected {reason})", 11, "#AAAA33");
 				}
 
 				var showTraderPrice = true;
@@ -317,7 +314,8 @@ namespace LootValue
 					var amountOfItems = ItemUtils.CountItemsSimilarToItemWithinSameContainer(item);
 					if (amountOfItems > 1)
 					{
-						AppendFullLineToTooltip(ref text, $"(Will sell {amountOfItems} similar items)", 10, "#555555");
+						var totalPrice = FleaUtils.GetTotalPriceOfAllSimilarItemsWithinSameContainer(item);
+						AppendFullLineToTooltip(ref text, $"(Will sell {amountOfItems} similar items for ₽ {totalPrice.FormatNumber()})", 10, "#555555");
 					}
 
 				}
