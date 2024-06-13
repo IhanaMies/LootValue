@@ -341,4 +341,43 @@ namespace LootValue
         public FleaPriceRequest(string templateId) => this.templateId = templateId;
     }
 
+	internal class DurabilityOrPriceConditionFlags
+    {
+
+        public bool shouldSellToTraderDueToBeingNonOperational;
+        public bool shouldSellToTraderDueToDurabilityThreshold;
+        public bool shouldSellToTraderDueToPriceThreshold;
+
+
+        public DurabilityOrPriceConditionFlags(
+            bool shouldSellToTraderDueToBeingNonOperational,
+            bool shouldSellToTraderDueToDurabilityThreshold,
+            bool shouldSellToTraderDueToPriceThreshold
+        )
+        {
+            this.shouldSellToTraderDueToBeingNonOperational = shouldSellToTraderDueToBeingNonOperational;
+            this.shouldSellToTraderDueToDurabilityThreshold = shouldSellToTraderDueToDurabilityThreshold;
+            this.shouldSellToTraderDueToPriceThreshold = shouldSellToTraderDueToPriceThreshold;
+        }
+
+        public static DurabilityOrPriceConditionFlags GetDurabilityOrPriceConditionFlagsForItem(Item item)
+		{
+			bool sellNonOperationalWeaponsToTraderEnabled = LootValueMod.SellToTraderIfWeaponIsNonOperational.Value;
+			bool sellItemToTraderBelowCertainFleaPriceEnabled = LootValueMod.SellToTraderBelowPriceThresholdEnabled.Value;
+			int priceThreshold = LootValueMod.SellToTraderPriceThreshold.Value;
+			bool sellItemToTraderBelowCertainDurabilityEnabled = LootValueMod.SellToTraderBelowDurabilityThresholdEnabled.Value;
+			int durabilityThreshold = LootValueMod.SellToTraderDurabilityThreshold.Value;
+
+			bool shouldSellToTraderDueToBeingNonOperational = ItemUtils.IsWeaponNonOperational(item) && sellNonOperationalWeaponsToTraderEnabled;
+			bool shouldSellToTraderDueToDurabilityThreshold = ItemUtils.IsItemBelowDurability(item, durabilityThreshold) && sellItemToTraderBelowCertainDurabilityEnabled;
+			
+			// Known issue: if you have multiple stacks of the item, and one of the stacks costs less than the threshold, this will be true
+			// i.e: if you have two stacks of bullets, and you hover over the small one, if the small one is below threshold, it will be sold to trader
+			// to fix: consider getting TOTAL value of ALL items that will be sold, instead of the item itself.
+			bool shouldSellToTraderDueToPriceThreshold = ItemUtils.IsItemFleaMarketPriceBelow(item, priceThreshold) && sellItemToTraderBelowCertainFleaPriceEnabled;
+			return new DurabilityOrPriceConditionFlags(shouldSellToTraderDueToBeingNonOperational, shouldSellToTraderDueToDurabilityThreshold, shouldSellToTraderDueToPriceThreshold);
+		}
+
+    }
+
 }
