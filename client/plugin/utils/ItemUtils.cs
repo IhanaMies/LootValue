@@ -6,74 +6,80 @@ using System.Collections.Generic;
 namespace LootValue
 {
 
-    internal class ItemUtils
-    {
+	internal class ItemUtils
+	{
 
-        public static float GetResourcePercentageOfItem(Item item)
-        {
-            if (item is null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
+		public static float GetResourcePercentageOfItem(Item item)
+		{
+			if (item == null)
+			{
+				return 1.0f;
+			}
 
-            if (item.GetItemComponent<RepairableComponent>() != null)
-            {
-                var repairable = item.GetItemComponent<RepairableComponent>();
+			if (item.GetItemComponent<RepairableComponent>() != null)
+			{
+				var repairable = item.GetItemComponent<RepairableComponent>();
 
-                var actualMax = repairable.TemplateDurability;
-                var currentDurability = repairable.Durability;
-                var currentPercentage = currentDurability / actualMax;
-                return currentPercentage;
+				var actualMax = repairable.TemplateDurability;
+				var currentDurability = repairable.Durability;
+				var currentPercentage = currentDurability / actualMax;
+				return currentPercentage;
 
-            }
-            else if (item.GetItemComponent<MedKitComponent>() != null)
-            {
+			}
+			else if (item.GetItemComponent<MedKitComponent>() != null)
+			{
 
-                return item.GetItemComponent<MedKitComponent>().RelativeValue;
+				return item.GetItemComponent<MedKitComponent>().RelativeValue;
 
-            }
-            else if (item.GetItemComponent<FoodDrinkComponent>() != null)
-            {
+			}
+			else if (item.GetItemComponent<FoodDrinkComponent>() != null)
+			{
 
-                return item.GetItemComponent<FoodDrinkComponent>().RelativeValue;
+				return item.GetItemComponent<FoodDrinkComponent>().RelativeValue;
 
-            }
-            else if (item.GetItemComponent<ResourceComponent>() != null)
-            {
+			}
+			else if (item.GetItemComponent<ResourceComponent>() != null)
+			{
 
-                return item.GetItemComponent<ResourceComponent>().RelativeValue;
+				// some barter items are considered resources, although they have no max value / value or anything. Must be a leftover from BSG
+				if (item.GetItemComponent<ResourceComponent>().MaxResource.ApproxEquals(0.0f))
+				{
+					return 1.0f;
+				}
 
-            }
-            else if (item.GetItemComponent<RepairKitComponent>() != null)
-            {
+				return item.GetItemComponent<ResourceComponent>().RelativeValue;
 
-                var component = item.GetItemComponent<RepairKitComponent>();
-                var currentResource = component.Resource;
-                // method 0 returns max value of template
-                var maxResource = component.method_0();
-                return currentResource / maxResource;
+			}
+			else if (item.GetItemComponent<RepairKitComponent>() != null)
+			{
 
-            }
-            else if (item.GetItemComponent<ArmorHolderComponent>() != null)
-            {
-                var component = item.GetItemComponent<ArmorHolderComponent>();
+				var component = item.GetItemComponent<RepairKitComponent>();
+				var currentResource = component.Resource;
+				// method 0 returns max value of template
+				var maxResource = component.method_0();
+				return currentResource / maxResource;
 
-                if (component.LockedArmorPlates.Count() == 0)
-                {
-                    return 1.0f;
-                }
+			}
+			else if (item.GetItemComponent<ArmorHolderComponent>() != null)
+			{
+				var component = item.GetItemComponent<ArmorHolderComponent>();
 
-                var maxDurabilityOfAllBasePlates = component.LockedArmorPlates.Sum(plate => plate.Armor.Repairable.TemplateDurability);
-                var currentDurabilityOfAllBasePlates = component.LockedArmorPlates.Sum(plate => plate.Armor.Repairable.Durability);
-                var currentPercentage = currentDurabilityOfAllBasePlates / maxDurabilityOfAllBasePlates;
-                return currentPercentage;
-            }
+				if (component.LockedArmorPlates.Count() == 0)
+				{
+					return 1.0f;
+				}
 
-            return 1.0f;
+				var maxDurabilityOfAllBasePlates = component.LockedArmorPlates.Sum(plate => plate.Armor.Repairable.TemplateDurability);
+				var currentDurabilityOfAllBasePlates = component.LockedArmorPlates.Sum(plate => plate.Armor.Repairable.Durability);
+				var currentPercentage = currentDurabilityOfAllBasePlates / maxDurabilityOfAllBasePlates;
+				return currentPercentage;
+			}
 
-        }
+			return 1.0f;
 
-        public static bool IsWeaponNonOperational(Item item)
+		}
+
+		public static bool IsWeaponNonOperational(Item item)
 		{
 			if (!(item is Weapon weapon))
 			{
@@ -88,13 +94,23 @@ namespace LootValue
 			return currentDurability < durabilityThreshold;
 		}
 
-		public static bool IsItemFleaMarketPriceBelow(Item hoveredItem, int priceThreshold)
+		public static bool IsItemFleaMarketPriceBelow(Item item, int priceThreshold, bool considerMultipleItems = false)
 		{
-			var price = FleaUtils.GetFleaMarketUnitPriceWithModifiers(hoveredItem) * hoveredItem.StackObjectsCount;
-			return price < priceThreshold;
+			var unitPrice = FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
+			if (considerMultipleItems)
+			{
+				var items = GetItemsSimilarToItemWithinSameContainer(item);
+				var price = items.Select(i => unitPrice * i.StackObjectsCount).Sum();
+				return price < priceThreshold;
+			}
+			else
+			{
+				var price = unitPrice * item.StackObjectsCount;
+				return price < priceThreshold;
+			}
 		}
 
-        public static bool ItemBelongsToTraderOrFleaMarketOrMail(Item item)
+		public static bool ItemBelongsToTraderOrFleaMarketOrMail(Item item)
 		{
 
 			if (item == null)
@@ -126,13 +142,13 @@ namespace LootValue
 
 		}
 
-        public static bool IsItemInPlayerInventory(Item item)
+		public static bool IsItemInPlayerInventory(Item item)
 		{
 			var ownerType = item.Owner.OwnerType;
 			return EOwnerType.Profile.Equals(ownerType);
 		}
 
-        /**
+		/**
 		* Includes original item!
 		*/
 		public static IEnumerable<Item> GetItemsSimilarToItemWithinSameContainer(Item item)
@@ -165,7 +181,7 @@ namespace LootValue
 			return GetItemsSimilarToItemWithinSameContainer(item).Count();
 		}
 
-    }
+	}
 
 
 }
