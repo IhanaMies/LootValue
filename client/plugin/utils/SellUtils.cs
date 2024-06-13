@@ -58,6 +58,12 @@ namespace LootValue
             return price;
         }
 
+		public static int GetTotalPriceOfAllSimilarItemsWithinSameContainer(Item item) {
+			var unitPrice = GetFleaMarketUnitPriceWithModifiers(item);
+			var items = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item);
+			return items.Select(i => unitPrice * i.StackObjectsCount).Sum();
+		}
+
 
         public static bool ContainsNonFleableItemsInside(Item item)
 		{
@@ -370,11 +376,7 @@ namespace LootValue
 
 			bool shouldSellToTraderDueToBeingNonOperational = ItemUtils.IsWeaponNonOperational(item) && sellNonOperationalWeaponsToTraderEnabled;
 			bool shouldSellToTraderDueToDurabilityThreshold = ItemUtils.IsItemBelowDurability(item, durabilityThreshold) && sellItemToTraderBelowCertainDurabilityEnabled;
-			
-			// Known issue: if you have multiple stacks of the item, and one of the stacks costs less than the threshold, this will be true
-			// i.e: if you have two stacks of bullets, and you hover over the small one, if the small one is below threshold, it will be sold to trader
-			// to fix: consider getting TOTAL value of ALL items that will be sold, instead of the item itself.
-			bool shouldSellToTraderDueToPriceThreshold = ItemUtils.IsItemFleaMarketPriceBelow(item, priceThreshold) && sellItemToTraderBelowCertainFleaPriceEnabled;
+			bool shouldSellToTraderDueToPriceThreshold = ItemUtils.IsItemFleaMarketPriceBelow(item, priceThreshold, FleaUtils.CanSellMultipleOfItem(item)) && sellItemToTraderBelowCertainFleaPriceEnabled;
 			return new DurabilityOrPriceConditionFlags(shouldSellToTraderDueToBeingNonOperational, shouldSellToTraderDueToDurabilityThreshold, shouldSellToTraderDueToPriceThreshold);
 		}
 
