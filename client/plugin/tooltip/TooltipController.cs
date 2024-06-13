@@ -1,8 +1,10 @@
+using System;
 using System.Linq;
 using System.Reflection;
 using Aki.Reflection.Patching;
 using EFT.InventoryLogic;
 using EFT.UI;
+using static LootValue.TooltipUtils;
 
 namespace LootValue
 {
@@ -40,8 +42,8 @@ namespace LootValue
 			{
 				SetupTooltip(__instance, ref delay);
 
-				var hoveredItem = HoverItemController.hoveredItem;
-				if (hoveredItem == null || tooltip == null)
+				var item = HoverItemController.hoveredItem;
+				if (item == null || tooltip == null)
 				{
 					return;
 				}
@@ -62,26 +64,26 @@ namespace LootValue
 				{
 					return;
 				}
-				if (ItemUtils.ItemBelongsToTraderOrFleaMarketOrMail(hoveredItem))
+				if (ItemUtils.ItemBelongsToTraderOrFleaMarketOrMail(item))
 				{
 					return;
 				}
 
-				var durability = ItemUtils.GetResourcePercentageOfItem(hoveredItem);
+				var durability = ItemUtils.GetResourcePercentageOfItem(item);
 				var missingDurability = 100 - durability * 100;
 
-				int stackAmount = hoveredItem.StackObjectsCount;
-				bool isItemEmpty = hoveredItem.IsEmpty();
+				int stackAmount = item.StackObjectsCount;
+				bool isItemEmpty = item.IsEmpty();
 				bool applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
 
-				int finalFleaPrice = FleaUtils.GetFleaMarketUnitPriceWithModifiers(hoveredItem) * stackAmount;
+				int finalFleaPrice = FleaUtils.GetFleaMarketUnitPriceWithModifiers(item) * stackAmount;
 				bool canBeSoldToFlea = finalFleaPrice > 0;
 
-				var finalTraderPrice = TraderUtils.GetBestTraderPrice(hoveredItem);
+				var finalTraderPrice = TraderUtils.GetBestTraderPrice(item);
 				bool canBeSoldToTrader = finalTraderPrice > 0;
 
 				// determine price per slot for each sale type				
-				var size = hoveredItem.CalculateCellSize();
+				var size = item.CalculateCellSize();
 				int slots = size.X * size.Y;
 
 				int pricePerSlotTrader = finalTraderPrice / slots;
@@ -96,21 +98,21 @@ namespace LootValue
 				// If both trader and flea are 0, then the item is not purchasable.
 				if (!canBeSoldToTrader && !canBeSoldToFlea)
 				{
-					AppendFullLineToTooltip(ref text, "(Item can't be sold)", 11, "#AA3333");
+                    AppendFullLineToTooltip(ref text, "(Item can't be sold)", 11, "#AA3333");
 					return;
 				}
 
 				if (sellToFlea)
 				{
-					if (TraderUtils.ShouldSellToTraderDueToPriceOrCondition(hoveredItem))
+					if (TraderUtils.ShouldSellToTraderDueToPriceOrCondition(item))
 					{
 						isTraderPriceHigherThanFlea = true;
 						isFleaPriceHigherThanTrader = false;
 						sellToTrader = true;
 						sellToFlea = false;
 
-						var reason = GetReasonForItemToBeSoldToTrader(hoveredItem);
-						AppendFullLineToTooltip(ref text, $"(Will be sold to <b>trader</b> {reason})", 11, "#AAAA33");
+						var reason = GetReasonForItemToBeSoldToTrader(item);
+                        AppendFullLineToTooltip(ref text, $"(<b>Trader</b> price selected {reason})", 11, "#AAAA33");
 					}
 				}
 
@@ -130,13 +132,13 @@ namespace LootValue
 
 				if (canBeSoldToTrader || canBeSoldToFlea)
 				{
-					AppendSeparator(ref text, appendNewLineAfter: false);
+                    AppendSeparator(ref text, appendNewLineAfter: false);
 				}
 
 				// append trader price on tooltip
 				if (showTraderPrice)
 				{
-					AppendNewLineToTooltipText(ref text);
+                    AppendNewLineToTooltipText(ref text);
 
 					// append trader price
 					var traderName = $"Trader: ";
@@ -144,20 +146,18 @@ namespace LootValue
 					var traderPricePerSlotColor = sellToTrader ? SlotColoring.GetColorFromValuePerSlots(pricePerSlotTrader) : "#444444";
 					var fontSize = sellToTrader ? 14 : 10;
 
-					StartSizeTag(ref text, fontSize);
+                    StartSizeTag(ref text, fontSize);
 
-					AppendTextToToolip(ref text, traderName, traderNameColor);
-					AppendTextToToolip(ref text, $"₽ {finalTraderPrice.FormatNumber()}", traderPricePerSlotColor);
+                    AppendTextToToolip(ref text, traderName, traderNameColor);
+                    AppendTextToToolip(ref text, $"₽ {finalTraderPrice.FormatNumber()}", traderPricePerSlotColor);
 
 					if (stackAmount > 1)
 					{
 						var unitPrice = $" (₽ {(finalTraderPrice / stackAmount).FormatNumber()} e.)";
-						AppendTextToToolip(ref text, unitPrice, "#333333");
+                        AppendTextToToolip(ref text, unitPrice, "#333333");
 					}
 
-					EndSizeTag(ref text);
-
-
+                    EndSizeTag(ref text);
 
 				}
 
@@ -178,7 +178,7 @@ namespace LootValue
 				// append flea price on the tooltip
 				if (showFleaPrice)
 				{
-					AppendNewLineToTooltipText(ref text);
+                    AppendNewLineToTooltipText(ref text);
 
 					// append flea price
 					var fleaName = $"Flea: ";
@@ -186,35 +186,35 @@ namespace LootValue
 					var fleaPricePerSlotColor = sellToFlea ? SlotColoring.GetColorFromValuePerSlots(pricePerSlotFlea) : "#444444";
 					var fontSize = sellToFlea ? 14 : 10;
 
-					StartSizeTag(ref text, fontSize);
+                    StartSizeTag(ref text, fontSize);
 
-					AppendTextToToolip(ref text, fleaName, fleaNameColor);
-					AppendTextToToolip(ref text, $"₽ {finalFleaPrice.FormatNumber()}", fleaPricePerSlotColor);
+                    AppendTextToToolip(ref text, fleaName, fleaNameColor);
+                    AppendTextToToolip(ref text, $"₽ {finalFleaPrice.FormatNumber()}", fleaPricePerSlotColor);
 
 					if (applyConditionReduction)
 					{
 						if (missingDurability >= 1.0f)
 						{
 							var missingDurabilityText = $" (-{(int)missingDurability}%)";
-							AppendTextToToolip(ref text, missingDurabilityText, "#AA1111");
+                            AppendTextToToolip(ref text, missingDurabilityText, "#AA1111");
 						}
 					}
 
 
 					if (stackAmount > 1)
 					{
-						var unitPrice = $" (₽ {FleaUtils.GetFleaMarketUnitPriceWithModifiers(hoveredItem).FormatNumber()} e.)";
-						AppendTextToToolip(ref text, unitPrice, "#333333");
+						var unitPrice = $" (₽ {FleaUtils.GetFleaMarketUnitPriceWithModifiers(item).FormatNumber()} e.)";
+                        AppendTextToToolip(ref text, unitPrice, "#333333");
 					}
 
-					EndSizeTag(ref text);
+                    EndSizeTag(ref text);
 
 					// Only show this out of raid
 					if (!isInRaid && !isTraderPriceHigherThanFlea)
 					{
-						if (FleaUtils.ContainsNonFleableItemsInside(hoveredItem))
+						if (FleaUtils.ContainsNonFleableItemsInside(item))
 						{
-							AppendFullLineToTooltip(ref text, "(Contains banned flea items inside)", 11, "#AA3333");
+                            AppendFullLineToTooltip(ref text, "(Contains banned flea items inside)", 11, "#AA3333");
 							canBeSoldToFlea = false;
 						}
 
@@ -226,7 +226,7 @@ namespace LootValue
 				{
 					if (!isItemEmpty)
 					{
-						AppendFullLineToTooltip(ref text, "(Item is not empty)", 11, "#AA3333");
+                        AppendFullLineToTooltip(ref text, "(Item is not empty)", 11, "#AA3333");
 						canBeSoldToFlea = false;
 						canBeSoldToTrader = false;
 					}
@@ -235,7 +235,7 @@ namespace LootValue
 				var shouldShowFleaMarketEligibility = LootValueMod.ShowFleaMarketEligibility.Value;
 				if (shouldShowFleaMarketEligibility && finalFleaPrice == 0)
 				{
-					AppendFullLineToTooltip(ref text, "(Item is banned from flea market)", 11, "#AA3333");
+                    AppendFullLineToTooltip(ref text, "(Item is banned from flea market)", 11, "#AA3333");
 				}
 
 				var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
@@ -243,16 +243,16 @@ namespace LootValue
 				{
 
 					var pricePerSlot = sellToTrader ? pricePerSlotTrader : pricePerSlotFlea;
-					var unitPrice = sellToTrader ? (finalTraderPrice / stackAmount) : FleaUtils.GetFleaMarketUnitPriceWithModifiers(hoveredItem);
-					var pricePerWeight = (int)(unitPrice / hoveredItem.GetSingleItemTotalWeight());
+					var unitPrice = sellToTrader ? (finalTraderPrice / stackAmount) : FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
+					var pricePerWeight = (int)(unitPrice / item.GetSingleItemTotalWeight());
 
-					AppendSeparator(ref text, "#555555");
+                    AppendSeparator(ref text, "#555555");
 
-					StartSizeTag(ref text, 11);
-					AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
-					AppendNewLineToTooltipText(ref text);
-					AppendTextToToolip(ref text, $"₽ / SLOT\t{pricePerSlot.FormatNumber()}", "#555555");
-					EndSizeTag(ref text);
+                    StartSizeTag(ref text, 11);
+                    AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
+                    AppendNewLineToTooltipText(ref text);
+                    AppendTextToToolip(ref text, $"₽ / SLOT\t{pricePerSlot.FormatNumber()}", "#555555");
+                    EndSizeTag(ref text);
 
 				}
 
@@ -273,7 +273,11 @@ namespace LootValue
 						{
 							AppendSeparator(ref text);
 							AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
+							if(canBeSoldToFlea && sellToFlea) {
+								AddMultipleItemsSaleSection(ref text, item);
+							}
 						}
+
 					}
 					else
 					{
@@ -295,71 +299,29 @@ namespace LootValue
 						if (canBeSoldToFlea)
 						{
 							AppendTextToToolip(ref text, $"Sell to Flea with Alt+Shift+Right Click", "#888888");
+							AddMultipleItemsSaleSection(ref text, item);
 						}
 					}
 
-					bool canSellSimilarItems = FleaUtils.CanSellMultipleOfItem(hoveredItem);
-					if (sellToFlea && canBeSoldToFlea && canSellSimilarItems)
+				}
+
+
+			}
+
+            private static void AddMultipleItemsSaleSection(ref string text, Item item)
+            {
+                bool canSellSimilarItems = FleaUtils.CanSellMultipleOfItem(item);
+				if (canSellSimilarItems)
+				{
+					// append only if more than 1 item will be sold due to the flea market action
+					var amountOfItems = ItemUtils.CountItemsSimilarToItemWithinSameContainer(item);
+					if (amountOfItems > 1)
 					{
-						// append only if more than 1 item will be sold due to the flea market action
-						var amountOfItems = ItemUtils.CountItemsSimilarToItemWithinSameContainer(hoveredItem);
-						if (amountOfItems > 1)
-						{
-							AppendFullLineToTooltip(ref text, $"(Will sell {amountOfItems} similar items)", 10, "#555555");
-						}
-
+						AppendFullLineToTooltip(ref text, $"(Will sell {amountOfItems} similar items)", 10, "#555555");
 					}
 
 				}
-
-
-			}
-
-			private static void AppendFullLineToTooltip(ref string tooltipText, string text, int? size, string color)
-			{
-				if (size.HasValue)
-				{
-					StartSizeTag(ref tooltipText, size.Value);
-				}
-				AppendNewLineToTooltipText(ref tooltipText);
-				AppendTextToToolip(ref tooltipText, text, color);
-				if (size.HasValue)
-				{
-					EndSizeTag(ref tooltipText);
-				}
-			}
-
-			private static void AppendNewLineToTooltipText(ref string tooltipText)
-			{
-				tooltipText += $"<br>";
-			}
-
-			private static void AppendTextToToolip(ref string tooltipText, string addText, string color)
-			{
-				tooltipText += $"<color={color}>{addText}</color>";
-			}
-
-			private static void StartSizeTag(ref string tooltipText, int size)
-			{
-				tooltipText += $"<size={size}>";
-			}
-
-			private static void EndSizeTag(ref string tooltipText)
-			{
-				tooltipText += $"</size>";
-			}
-
-			private static void AppendSeparator(ref string tooltipText, string color = "#444444", bool appendNewLineAfter = true)
-			{
-				AppendNewLineToTooltipText(ref tooltipText);
-				AppendTextToToolip(ref tooltipText, "--------------------", color);
-				if (appendNewLineAfter)
-				{
-					AppendNewLineToTooltipText(ref tooltipText);
-				}
-			}
-
-			// TODO: add a method that adds a warning ( parenthesis with size 11 and color red )
+            }
 
 			private static string GetReasonForItemToBeSoldToTrader(Item item)
 			{
@@ -380,6 +342,8 @@ namespace LootValue
 			}
 
 		}
+
+
 
 	}
 
