@@ -64,6 +64,22 @@ namespace LootValue
 			return items.Select(i => unitPrice * i.StackObjectsCount).Sum();
 		}
 
+		public static bool IsItemFleaMarketPriceBelow(Item item, int priceThreshold, bool considerMultipleItems = false)
+		{
+			var unitPrice = GetFleaMarketUnitPriceWithModifiers(item);
+			if (considerMultipleItems)
+			{
+				var items = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item);
+				var price = items.Select(i => unitPrice * i.StackObjectsCount).Sum();
+				return price < priceThreshold;
+			}
+			else
+			{
+				var price = unitPrice * item.StackObjectsCount;
+				return price < priceThreshold;
+			}
+		}
+
 
         public static bool ContainsNonFleableItemsInside(Item item)
 		{
@@ -376,7 +392,7 @@ namespace LootValue
 
 			bool shouldSellToTraderDueToBeingNonOperational = ItemUtils.IsWeaponNonOperational(item) && sellNonOperationalWeaponsToTraderEnabled;
 			bool shouldSellToTraderDueToDurabilityThreshold = ItemUtils.IsItemBelowDurability(item, durabilityThreshold) && sellItemToTraderBelowCertainDurabilityEnabled;
-			bool shouldSellToTraderDueToPriceThreshold = ItemUtils.IsItemFleaMarketPriceBelow(item, priceThreshold, FleaUtils.CanSellMultipleOfItem(item)) && sellItemToTraderBelowCertainFleaPriceEnabled;
+			bool shouldSellToTraderDueToPriceThreshold = FleaUtils.IsItemFleaMarketPriceBelow(item, priceThreshold, FleaUtils.CanSellMultipleOfItem(item)) && sellItemToTraderBelowCertainFleaPriceEnabled;
 			return new DurabilityOrPriceConditionFlags(shouldSellToTraderDueToBeingNonOperational, shouldSellToTraderDueToDurabilityThreshold, shouldSellToTraderDueToPriceThreshold);
 		}
 

@@ -94,21 +94,6 @@ namespace LootValue
 			return currentDurability < durabilityThreshold;
 		}
 
-		public static bool IsItemFleaMarketPriceBelow(Item item, int priceThreshold, bool considerMultipleItems = false)
-		{
-			var unitPrice = FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
-			if (considerMultipleItems)
-			{
-				var items = GetItemsSimilarToItemWithinSameContainer(item);
-				var price = items.Select(i => unitPrice * i.StackObjectsCount).Sum();
-				return price < priceThreshold;
-			}
-			else
-			{
-				var price = unitPrice * item.StackObjectsCount;
-				return price < priceThreshold;
-			}
-		}
 
 		public static bool ItemBelongsToTraderOrFleaMarketOrMail(Item item)
 		{
