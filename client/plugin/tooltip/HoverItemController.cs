@@ -12,7 +12,8 @@ namespace LootValue
     {
         public static Item hoveredItem;
 
-        public static void ClearHoverItem() {
+        public static void ClearHoverItem()
+        {
             hoveredItem = null;
         }
 

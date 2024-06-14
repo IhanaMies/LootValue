@@ -12,53 +12,54 @@ using FleaRequirement = GClass1844;
 namespace LootValue
 {
 
-    internal static class FleaUtils
-    {
+	internal static class FleaUtils
+	{
 
-        public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
 
-        public static bool HasFleaSlotToSell()
-        {
-            return LootValueMod.IgnoreFleaMaxOfferCount.Value || Session.RagFair.MyOffersCount < Session.RagFair.GetMaxOffersCount(Session.RagFair.MyRating);
-        }
+		public static bool HasFleaSlotToSell()
+		{
+			return LootValueMod.IgnoreFleaMaxOfferCount.Value || Session.RagFair.MyOffersCount < Session.RagFair.GetMaxOffersCount(Session.RagFair.MyRating);
+		}
 
-        public static int GetFleaValue(Item item)
-        {
+		public static int GetFleaValue(Item item)
+		{
 
-            var price = FleaPriceCache.FetchPrice(item.TemplateId);
-            if (!price.HasValue)
-            {
-                return 0;
-            }
+			var price = FleaPriceCache.FetchPrice(item.TemplateId);
+			if (!price.HasValue)
+			{
+				return 0;
+			}
 
-            return (int)price.Value;
-        }
+			return (int)price.Value;
+		}
 
-        public static int GetFleaMarketUnitPrice(Item item)
-        {
-            if (!item.Template.CanSellOnRagfair)
-            {
-                return 0;
-            }
+		public static int GetFleaMarketUnitPrice(Item item)
+		{
+			if (!item.Template.CanSellOnRagfair)
+			{
+				return 0;
+			}
 
-            int unitPrice = GetFleaValue(item);
-            return unitPrice;
-        }
+			int unitPrice = GetFleaValue(item);
+			return unitPrice;
+		}
 
-        public static int GetFleaMarketUnitPriceWithModifiers(Item item)
-        {
-            int price = GetFleaMarketUnitPrice(item);
+		public static int GetFleaMarketUnitPriceWithModifiers(Item item)
+		{
+			int price = GetFleaMarketUnitPrice(item);
 
-            bool applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
-            if (applyConditionReduction)
-            {
-                price = (int)(price * ItemUtils.GetResourcePercentageOfItem(item));
-            }
+			bool applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
+			if (applyConditionReduction)
+			{
+				price = (int)(price * ItemUtils.GetResourcePercentageOfItem(item));
+			}
 
-            return price;
-        }
+			return price;
+		}
 
-		public static int GetTotalPriceOfAllSimilarItemsWithinSameContainer(Item item) {
+		public static int GetTotalPriceOfAllSimilarItemsWithinSameContainer(Item item)
+		{
 			var unitPrice = GetFleaMarketUnitPriceWithModifiers(item);
 			var items = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item);
 			return items.Select(i => unitPrice * i.StackObjectsCount).Sum();
@@ -81,12 +82,12 @@ namespace LootValue
 		}
 
 
-        public static bool ContainsNonFleableItemsInside(Item item)
+		public static bool ContainsNonFleableItemsInside(Item item)
 		{
 			return item.GetAllItems().Any(i => i.Template.CanSellOnRagfair == false);
 		}
 
-        public static bool CanBeSoldInFleaRightNow(Item item, bool displayWarning = true)
+		public static bool CanBeSoldInFleaRightNow(Item item, bool displayWarning = true)
 		{
 
 			if (!Session.RagFair.Available)
@@ -149,7 +150,7 @@ namespace LootValue
 			return true;
 		}
 
-        public static bool CanSellMultipleOfItem(Item item)
+		public static bool CanSellMultipleOfItem(Item item)
 		{
 
 			bool sellMultipleEnabled = LootValueMod.SellSimilarItems.Value;
@@ -171,7 +172,7 @@ namespace LootValue
 		}
 
 
-        public static void SellFleaItemOrMultipleItemsIfEnabled(Item item)
+		public static void SellFleaItemOrMultipleItemsIfEnabled(Item item)
 		{
 			if (!CanSellMultipleOfItem(item))
 			{
@@ -183,7 +184,7 @@ namespace LootValue
 			SellToFlea(item, itemsSimilarToTheOneImSelling);
 		}
 
-        public static void SellToFlea(Item itemToCheck, IEnumerable<Item> itemsToSell)
+		public static void SellToFlea(Item itemToCheck, IEnumerable<Item> itemsToSell)
 		{
 			if (!CanBeSoldInFleaRightNow(itemToCheck))
 			{
@@ -222,75 +223,75 @@ namespace LootValue
 		}
 
 
-    }
+	}
 
-    internal static class TraderUtils
-    {
+	internal static class TraderUtils
+	{
 
-        public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
 
-        public static int GetBestTraderPrice(Item item)
-        {
-            var offer = GetBestTraderOffer(item);
-            if (offer == null)
-            {
-                return 0;
-            }
-            return offer.Price;
-        }
+		public static int GetBestTraderPrice(Item item)
+		{
+			var offer = GetBestTraderOffer(item);
+			if (offer == null)
+			{
+				return 0;
+			}
+			return offer.Price;
+		}
 
-        public static TraderOffer GetBestTraderOffer(Item item)
-        {
-            if (!Session.Profile.Examined(item))
-            {
-                return null;
-            }
+		public static TraderOffer GetBestTraderOffer(Item item)
+		{
+			if (!Session.Profile.Examined(item))
+			{
+				return null;
+			}
 
-            // this seems to work to Everything but armored rigs
-            // If the item is not empty, it will not properly calculate the offer
-            // For some reason it works for armors, weapons, helmets, but not for armored rigs
-            var clone = item.CloneVisibleItem();
-            clone.UnlimitedCount = false;
+			// this seems to work to Everything but armored rigs
+			// If the item is not empty, it will not properly calculate the offer
+			// For some reason it works for armors, weapons, helmets, but not for armored rigs
+			var clone = item.CloneVisibleItem();
+			clone.UnlimitedCount = false;
 
-            var bestOffer =
-                Session.Traders
-                    .Where(trader => trader.Info.Available && !trader.Info.Disabled && trader.Info.Unlocked)
-                    .Select(trader => GetTraderOffer(clone, trader))
-                    .Where(offer => offer != null)
-                    .OrderByDescending(offer => offer.Price)
-                    .FirstOrDefault();
+			var bestOffer =
+				Session.Traders
+					.Where(trader => trader.Info.Available && !trader.Info.Disabled && trader.Info.Unlocked)
+					.Select(trader => GetTraderOffer(clone, trader))
+					.Where(offer => offer != null)
+					.OrderByDescending(offer => offer.Price)
+					.FirstOrDefault();
 
-            return bestOffer;
-        }
+			return bestOffer;
+		}
 
-        private static TraderOffer GetTraderOffer(Item item, TraderClass trader)
-        {
-            var result = trader.GetUserItemPrice(item);
+		private static TraderOffer GetTraderOffer(Item item, TraderClass trader)
+		{
+			var result = trader.GetUserItemPrice(item);
 
-            if (result == null)
-            {
-                return null;
-            }
+			if (result == null)
+			{
+				return null;
+			}
 
-            // TODO: try to see if we can convert non rubles to rubles
+			// TODO: try to see if we can convert non rubles to rubles
 
-            return new TraderOffer(
-                trader.Id,
-                trader.LocalizedName,
-                result.Value.Amount,
-                CurrencyUtil.GetCurrencyCharById(result.Value.CurrencyId),
-                trader.GetSupplyData().CurrencyCourses[result.Value.CurrencyId],
-                item.StackObjectsCount
-            );
-        }
+			return new TraderOffer(
+				trader.Id,
+				trader.LocalizedName,
+				result.Value.Amount,
+				CurrencyUtil.GetCurrencyCharById(result.Value.CurrencyId),
+				trader.GetSupplyData().CurrencyCourses[result.Value.CurrencyId],
+				item.StackObjectsCount
+			);
+		}
 
-        public static bool ShouldSellToTraderDueToPriceOrCondition(Item item)
-        {
-            var flags = DurabilityOrPriceConditionFlags.GetDurabilityOrPriceConditionFlagsForItem(item);
-            return flags.shouldSellToTraderDueToBeingNonOperational || flags.shouldSellToTraderDueToDurabilityThreshold || flags.shouldSellToTraderDueToPriceThreshold;
-        }
+		public static bool ShouldSellToTraderDueToPriceOrCondition(Item item)
+		{
+			var flags = DurabilityOrPriceConditionFlags.GetDurabilityOrPriceConditionFlagsForItem(item);
+			return flags.shouldSellToTraderDueToBeingNonOperational || flags.shouldSellToTraderDueToDurabilityThreshold || flags.shouldSellToTraderDueToPriceThreshold;
+		}
 
-        public static void SellToTrader(Item item)
+		public static void SellToTrader(Item item)
 		{
 			try
 			{
@@ -302,7 +303,8 @@ namespace LootValue
 					return;
 				}
 
-				if(item.IsNotEmpty()) {
+				if (item.IsNotEmpty())
+				{
 					NotificationManagerClass.DisplayWarningNotification("Quicksell: item is not empty.");
 					return;
 				}
@@ -332,57 +334,57 @@ namespace LootValue
 			Session.ConfirmSell(tc.Id, new EFT.Trading.TradingItemReference[1] { itemRef }, bestTraderOffer.Price, new Callback(@class.method_0));
 			Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.TradeOperationComplete);
 		}
-        
-
-    }
 
 
-    public sealed class TraderOffer
-    {
-        public string TraderId;
-        public string TraderName;
-        public int Price;
-        public string Currency;
-        public double Course;
-        public int Count;
+	}
 
-        public TraderOffer(string traderId, string traderName, int price, string currency, double course, int count)
-        {
-            TraderId = traderId;
-            TraderName = traderName;
-            Price = price;
-            Currency = currency;
-            Course = course;
-            Count = count;
-        }
-    }
 
-    public class FleaPriceRequest
-    {
-        public string templateId;
-        public FleaPriceRequest(string templateId) => this.templateId = templateId;
-    }
+	public sealed class TraderOffer
+	{
+		public string TraderId;
+		public string TraderName;
+		public int Price;
+		public string Currency;
+		public double Course;
+		public int Count;
+
+		public TraderOffer(string traderId, string traderName, int price, string currency, double course, int count)
+		{
+			TraderId = traderId;
+			TraderName = traderName;
+			Price = price;
+			Currency = currency;
+			Course = course;
+			Count = count;
+		}
+	}
+
+	public class FleaPriceRequest
+	{
+		public string templateId;
+		public FleaPriceRequest(string templateId) => this.templateId = templateId;
+	}
 
 	internal class DurabilityOrPriceConditionFlags
-    {
+	{
 
-        public bool shouldSellToTraderDueToBeingNonOperational;
-        public bool shouldSellToTraderDueToDurabilityThreshold;
-        public bool shouldSellToTraderDueToPriceThreshold;
+		public bool shouldSellToTraderDueToBeingNonOperational;
+		public bool shouldSellToTraderDueToDurabilityThreshold;
+		public bool shouldSellToTraderDueToPriceThreshold;
 
 
-        public DurabilityOrPriceConditionFlags(
-            bool shouldSellToTraderDueToBeingNonOperational,
-            bool shouldSellToTraderDueToDurabilityThreshold,
-            bool shouldSellToTraderDueToPriceThreshold
-        )
-        {
-            this.shouldSellToTraderDueToBeingNonOperational = shouldSellToTraderDueToBeingNonOperational;
-            this.shouldSellToTraderDueToDurabilityThreshold = shouldSellToTraderDueToDurabilityThreshold;
-            this.shouldSellToTraderDueToPriceThreshold = shouldSellToTraderDueToPriceThreshold;
-        }
+		public DurabilityOrPriceConditionFlags(
+			bool shouldSellToTraderDueToBeingNonOperational,
+			bool shouldSellToTraderDueToDurabilityThreshold,
+			bool shouldSellToTraderDueToPriceThreshold
+		)
+		{
+			this.shouldSellToTraderDueToBeingNonOperational = shouldSellToTraderDueToBeingNonOperational;
+			this.shouldSellToTraderDueToDurabilityThreshold = shouldSellToTraderDueToDurabilityThreshold;
+			this.shouldSellToTraderDueToPriceThreshold = shouldSellToTraderDueToPriceThreshold;
+		}
 
-        public static DurabilityOrPriceConditionFlags GetDurabilityOrPriceConditionFlagsForItem(Item item)
+		public static DurabilityOrPriceConditionFlags GetDurabilityOrPriceConditionFlagsForItem(Item item)
 		{
 			bool sellNonOperationalWeaponsToTraderEnabled = LootValueMod.SellToTraderIfWeaponIsNonOperational.Value;
 			bool sellItemToTraderBelowCertainFleaPriceEnabled = LootValueMod.SellToTraderBelowPriceThresholdEnabled.Value;
@@ -396,6 +398,6 @@ namespace LootValue
 			return new DurabilityOrPriceConditionFlags(shouldSellToTraderDueToBeingNonOperational, shouldSellToTraderDueToDurabilityThreshold, shouldSellToTraderDueToPriceThreshold);
 		}
 
-    }
+	}
 
 }

@@ -10,7 +10,7 @@ namespace LootValue
 
 		public LootValueConfigColor(string values)
 		{
-			values = values.Substring(1, values.Length-2);
+			values = values.Substring(1, values.Length - 2);
 			string[] split = values.Split(':');
 
 			if (int.TryParse(split[0], out int upperBound))
@@ -91,7 +91,7 @@ namespace LootValue
 				{
 					logger.LogWarning($"Custom color format failed. Entry #{i} must start with an [");
 					return false;
-				} 
+				}
 
 				if (!bound.EndsWith("]"))
 				{
@@ -145,7 +145,7 @@ namespace LootValue
 
 		public static string GetColorFromValuePerSlots(int valuePerSlot)
 		{
-			foreach(var bound in Colors)
+			foreach (var bound in Colors)
 			{
 				if (valuePerSlot < bound.UpperBound)
 				{
