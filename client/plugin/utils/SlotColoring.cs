@@ -37,12 +37,13 @@ namespace LootValue
 	{
 		public static readonly List<LootValueConfigColor> DefaultColors = new List<LootValueConfigColor>()
 		{
-			new LootValueConfigColor(5000, "#ff0000"),
-			new LootValueConfigColor(7500, "#ffa500"),
-			new LootValueConfigColor(10000, "#ffff00"),
-			new LootValueConfigColor(15000, "#00ff00"),
-			new LootValueConfigColor(20000, "#00ffff"),
-			new LootValueConfigColor(int.MaxValue, "#ff00ff")
+			new LootValueConfigColor(5000, "#dd0000"),
+			new LootValueConfigColor(7500, "#dda500"),
+			new LootValueConfigColor(10000, "#dddd00"),
+			new LootValueConfigColor(15000, "#00dd00"),
+			new LootValueConfigColor(20000, "#00dddd"),
+			new LootValueConfigColor(25000, "#dd00dd"),
+			new LootValueConfigColor(int.MaxValue, "#dd66dd"),
 		};
 
 		public static List<LootValueConfigColor> Colors = new List<LootValueConfigColor>();
@@ -130,17 +131,19 @@ namespace LootValue
 			Yellow,
 			Green,
 			Lightblue,
+			Purple,
 			Pink
 		}
 
 		static Dictionary<ESlotColor, string> slotColors { get; } = new Dictionary<ESlotColor, string>()
 		{
-			{ ESlotColor.Red, "#ff0000" },
-			{ ESlotColor.Orange, "#ffa500" },
-			{ ESlotColor.Yellow, "#ffff00" },
-			{ ESlotColor.Green, "#00ff00" },
-			{ ESlotColor.Lightblue, "#00ffff" },
-			{ ESlotColor.Pink, "#ff00ff" }
+			{ ESlotColor.Red, "#dd0000" },
+			{ ESlotColor.Orange, "#dda500" },
+			{ ESlotColor.Yellow, "#dddd00" },
+			{ ESlotColor.Green, "#00dd00" },
+			{ ESlotColor.Lightblue, "#00dddd" },
+			{ ESlotColor.Purple, "#dd00dd" },
+			{ ESlotColor.Pink, "#dd66dd" },
 		};
 
 		public static string GetColorFromValuePerSlots(int valuePerSlot)
@@ -153,7 +156,7 @@ namespace LootValue
 				}
 			}
 
-			return "#ff00ff";
+			return "#dd00dd";
 		}
 	}
 }

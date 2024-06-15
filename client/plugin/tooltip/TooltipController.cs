@@ -228,7 +228,7 @@ namespace LootValue
 				}
 
 				var shouldShowFleaMarketEligibility = LootValueMod.ShowFleaMarketEligibility.Value;
-				if (shouldShowFleaMarketEligibility && finalFleaPrice == 0)
+				if (shouldShowFleaMarketEligibility && !item.Template.CanSellOnRagfair)
 				{
 					AppendFullLineToTooltip(ref text, "(Item is banned from flea market)", 11, "#AA3333");
 				}
