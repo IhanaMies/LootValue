@@ -329,7 +329,7 @@ namespace LootValue
 				var flags = DurabilityOrProfitConditionFlags.GetDurabilityOrProfitConditionFlagsForItem(item);
 				if (flags.shouldSellToTraderDueToBeingNonOperational)
 				{
-					return "due to being non operation";
+					return "due to being non operational";
 				}
 				else if (flags.shouldSellToTraderDueToDurabilityThreshold)
 				{
