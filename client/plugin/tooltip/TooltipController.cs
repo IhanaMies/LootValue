@@ -100,6 +100,8 @@ namespace LootValue
 					return;
 				}
 
+				// TODO (maybe): add an option to use a modifier key to show the rest while in raid
+
 				if (sellToFlea && TraderUtils.ShouldSellToTraderDueToPriceOrCondition(item) && !isInRaid)
 				{
 					isTraderPriceHigherThanFlea = true;
@@ -233,6 +235,8 @@ namespace LootValue
 					AppendFullLineToTooltip(ref text, "(Item is banned from flea market)", 11, "#AA3333");
 				}
 
+				// TODO: Add Weapon summed non vital parts flea market prices (toggleable)
+
 				var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
 				if (isInRaid && shouldShowPricePerSlotAndPerKgInRaid)
 				{
@@ -322,7 +326,7 @@ namespace LootValue
 
 			private static string GetReasonForItemToBeSoldToTrader(Item item)
 			{
-				var flags = DurabilityOrPriceConditionFlags.GetDurabilityOrPriceConditionFlagsForItem(item);
+				var flags = DurabilityOrProfitConditionFlags.GetDurabilityOrProfitConditionFlagsForItem(item);
 				if (flags.shouldSellToTraderDueToBeingNonOperational)
 				{
 					return "due to being non operation";
@@ -331,7 +335,7 @@ namespace LootValue
 				{
 					return "due to low durability";
 				}
-				else if (flags.shouldSellToTraderDueToPriceThreshold)
+				else if (flags.shouldSellToTraderDueToProfitThreshold)
 				{
 					return "due to low price";
 				}

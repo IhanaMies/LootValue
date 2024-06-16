@@ -287,8 +287,8 @@ namespace LootValue
 
 		public static bool ShouldSellToTraderDueToPriceOrCondition(Item item)
 		{
-			var flags = DurabilityOrPriceConditionFlags.GetDurabilityOrPriceConditionFlagsForItem(item);
-			return flags.shouldSellToTraderDueToBeingNonOperational || flags.shouldSellToTraderDueToDurabilityThreshold || flags.shouldSellToTraderDueToPriceThreshold;
+			var flags = DurabilityOrProfitConditionFlags.GetDurabilityOrProfitConditionFlagsForItem(item);
+			return flags.shouldSellToTraderDueToBeingNonOperational || flags.shouldSellToTraderDueToDurabilityThreshold || flags.shouldSellToTraderDueToProfitThreshold;
 		}
 
 		public static void SellToTrader(Item item)
@@ -365,37 +365,37 @@ namespace LootValue
 		public FleaPriceRequest(string templateId) => this.templateId = templateId;
 	}
 
-	internal class DurabilityOrPriceConditionFlags
+	internal class DurabilityOrProfitConditionFlags
 	{
 
 		public bool shouldSellToTraderDueToBeingNonOperational;
 		public bool shouldSellToTraderDueToDurabilityThreshold;
-		public bool shouldSellToTraderDueToPriceThreshold;
+		public bool shouldSellToTraderDueToProfitThreshold;
 
 
-		public DurabilityOrPriceConditionFlags(
+		public DurabilityOrProfitConditionFlags(
 			bool shouldSellToTraderDueToBeingNonOperational,
 			bool shouldSellToTraderDueToDurabilityThreshold,
-			bool shouldSellToTraderDueToPriceThreshold
+			bool shouldSellToTraderDueToProfitThreshold
 		)
 		{
 			this.shouldSellToTraderDueToBeingNonOperational = shouldSellToTraderDueToBeingNonOperational;
 			this.shouldSellToTraderDueToDurabilityThreshold = shouldSellToTraderDueToDurabilityThreshold;
-			this.shouldSellToTraderDueToPriceThreshold = shouldSellToTraderDueToPriceThreshold;
+			this.shouldSellToTraderDueToProfitThreshold = shouldSellToTraderDueToProfitThreshold;
 		}
 
-		public static DurabilityOrPriceConditionFlags GetDurabilityOrPriceConditionFlagsForItem(Item item)
+		public static DurabilityOrProfitConditionFlags GetDurabilityOrProfitConditionFlagsForItem(Item item)
 		{
 			bool sellNonOperationalWeaponsToTraderEnabled = LootValueMod.SellToTraderIfWeaponIsNonOperational.Value;
-			bool sellItemToTraderBelowCertainFleaPriceEnabled = LootValueMod.SellToTraderBelowPriceThresholdEnabled.Value;
-			int priceThreshold = LootValueMod.SellToTraderPriceThreshold.Value;
+			bool sellItemToTraderBelowCertainFleaProfitEnabled = LootValueMod.SellToTraderBelowProfitThresholdEnabled.Value;
+			int profitThreshold = LootValueMod.SellToTraderProfitThreshold.Value;
 			bool sellItemToTraderBelowCertainDurabilityEnabled = LootValueMod.SellToTraderBelowDurabilityThresholdEnabled.Value;
 			int durabilityThreshold = LootValueMod.SellToTraderDurabilityThreshold.Value;
 
 			bool shouldSellToTraderDueToBeingNonOperational = ItemUtils.IsWeaponNonOperational(item) && sellNonOperationalWeaponsToTraderEnabled;
 			bool shouldSellToTraderDueToDurabilityThreshold = ItemUtils.IsItemBelowDurability(item, durabilityThreshold) && sellItemToTraderBelowCertainDurabilityEnabled;
-			bool shouldSellToTraderDueToPriceThreshold = FleaUtils.IsItemFleaMarketPriceBelow(item, priceThreshold, FleaUtils.CanSellMultipleOfItem(item)) && sellItemToTraderBelowCertainFleaPriceEnabled;
-			return new DurabilityOrPriceConditionFlags(shouldSellToTraderDueToBeingNonOperational, shouldSellToTraderDueToDurabilityThreshold, shouldSellToTraderDueToPriceThreshold);
+			bool shouldSellToTraderDueToProfitThreshold = FleaUtils.IsItemFleaMarketPriceBelow(item, profitThreshold, FleaUtils.CanSellMultipleOfItem(item)) && sellItemToTraderBelowCertainFleaProfitEnabled;
+			return new DurabilityOrProfitConditionFlags(shouldSellToTraderDueToBeingNonOperational, shouldSellToTraderDueToDurabilityThreshold, shouldSellToTraderDueToProfitThreshold);
 		}
 
 	}

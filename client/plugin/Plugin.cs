@@ -39,8 +39,8 @@ namespace LootValue
 		internal static ConfigEntry<bool> SellOnlySimilarItemsFiR;
 		internal static ConfigEntry<bool> OneButtonQuickSell;
 		internal static ConfigEntry<bool> SellToTraderIfWeaponIsNonOperational;
-		internal static ConfigEntry<bool> SellToTraderBelowPriceThresholdEnabled;
-		internal static ConfigEntry<int> SellToTraderPriceThreshold;
+		internal static ConfigEntry<bool> SellToTraderBelowProfitThresholdEnabled;
+		internal static ConfigEntry<int> SellToTraderProfitThreshold;
 
 		internal static ConfigEntry<bool> SellToTraderBelowDurabilityThresholdEnabled;
 		internal static ConfigEntry<int> SellToTraderDurabilityThreshold;
@@ -86,9 +86,9 @@ If enabled:
 			SellOnlySimilarItemsFiR = Config.Bind("1. Quick Sell", "3. Only sell similar items if they are all FiR", false, "If this is enabled, sell multiple will only work select FiR items.");
 			IgnoreFleaMaxOfferCount = Config.Bind("1. Quick Sell", "4. Ignore flea max offer count", false);
 			SellToTraderIfWeaponIsNonOperational = Config.Bind("1. Quick Sell", "5. Sell to trader if item is weapon and non operational", false);
-			SellToTraderBelowPriceThresholdEnabled = Config.Bind("1. Quick Sell", "6. Sell to trader if flea market price below threshold enabled", false);
-			SellToTraderPriceThreshold = Config.Bind("1. Quick Sell", "6.1. Flea market price threshold", 0,
-				"This means that if the flea market price for this item is below this number, it will be sold to the traders anyways. Useful to not clutter offers with minimal impact. If sell multiple at once is enabled, the total price of all items will be used instead.");
+			SellToTraderBelowProfitThresholdEnabled = Config.Bind("1. Quick Sell", "6. Sell to trader if flea market price below threshold enabled", false);
+			SellToTraderProfitThreshold = Config.Bind("1. Quick Sell", "6.1. Flea market profit threshold", 0,
+				"This means that if the flea market profit for this item is below this number, it will be sold to the traders instead. Useful to not clutter offers with minimal impact. If sell multiple at once is enabled, the total profit of the entire offer will be used instead.");
 			SellToTraderBelowDurabilityThresholdEnabled = Config.Bind("1. Quick Sell", "7. Sell to trader if below durability threshold enabled", false);
 			SellToTraderDurabilityThreshold = Config.Bind("1. Quick Sell", "7.1. Durability threshold %", 0,
 				"This means that any item that is below this % of durability, will be sold to trader regardless of flea market price. This means if this value is configured at 50%, an ifak with 150/300 would be sold to the traders instead the flea market.");
