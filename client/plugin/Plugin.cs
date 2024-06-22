@@ -57,6 +57,7 @@ namespace LootValue
 
 		internal static ConfigEntry<bool> ReducePriceInFleaForBrokenItem;
 		internal static ConfigEntry<bool> ShowFleaMarketEligibility;
+		internal static ConfigEntry<bool> ShowNonVitalWeaponPartsFleaPrice;
 
 		private void SetupConfig()
 		{
@@ -69,6 +70,7 @@ namespace LootValue
 			HideLowerPrice = Config.Bind("0. Item Prices", "4. Hide lower price", false);
 			HideLowerPriceInRaid = Config.Bind("0. Item Prices", "5. Hide lower price in raid", false);
 			ShowFleaMarketEligibility = Config.Bind("0. Item Prices", "6. Show if item is banned from flea market", true);
+			ShowNonVitalWeaponPartsFleaPrice = Config.Bind("0. Item Prices", "7. Show flea market price of non vital parts on weapons", false, "This will make the flea market price always appear if the mods prices are higher than the trader price");
 
 			// General: Quick Sell
 			EnableQuickSell = Config.Bind("1. Quick Sell", "0. Enable quick sell", true, "Sell any item(s) instantly using the key combination described in 'One button quick sell'.");

@@ -100,9 +100,17 @@ namespace LootValue
 					return;
 				}
 
-				// TODO (maybe): add an option to use a modifier key to show the rest while in raid
+				var fleaPricesForWeaponMods = 0;
+				var shouldShowNonVitalModsPartsOfItem = LootValueMod.ShowNonVitalWeaponPartsFleaPrice.Value;
+				if(shouldShowNonVitalModsPartsOfItem && ItemUtils.IsItemWeapon(item)) {
 
-				if (sellToFlea && TraderUtils.ShouldSellToTraderDueToPriceOrCondition(item) && !isInRaid)
+					var nonVitalMods = ItemUtils.GetWeaponNonVitalMods(item);
+					fleaPricesForWeaponMods = FleaUtils.GetFleaValue(nonVitalMods);
+                }
+
+                // TODO (maybe): add an option to use a modifier key to show the rest while in raid
+
+                if (sellToFlea && TraderUtils.ShouldSellToTraderDueToPriceOrCondition(item) && !isInRaid)
 				{
 					isTraderPriceHigherThanFlea = true;
 					isFleaPriceHigherThanTrader = false;
@@ -110,7 +118,7 @@ namespace LootValue
 					sellToFlea = false;
 
 					var reason = GetReasonForItemToBeSoldToTrader(item);
-					AppendFullLineToTooltip(ref text, $"(<b>Trader</b> price selected {reason})", 11, "#AAAA33");
+					AppendFullLineToTooltip(ref text, $"(Selling to <b>Trader</b> {reason})", 11, "#AAAA33");
 				}
 
 				var showTraderPrice = true;
@@ -219,6 +227,15 @@ namespace LootValue
 
 				}
 
+				if(fleaPricesForWeaponMods > 0) {
+					AppendNewLineToTooltipText(ref text);
+					var color = SlotColoring.GetColorFromTotalValue(fleaPricesForWeaponMods);
+					StartSizeTag(ref text, 12);
+					AppendTextToToolip(ref text, $"₽ {fleaPricesForWeaponMods.FormatNumber()} ", color);
+					AppendTextToToolip(ref text, $"in parts (flea)", "#555555");
+					EndSizeTag(ref text);
+				}
+
 				if (!isInRaid)
 				{
 					if (!isItemEmpty)
@@ -235,8 +252,6 @@ namespace LootValue
 					AppendFullLineToTooltip(ref text, "(Item is banned from flea market)", 11, "#AA3333");
 				}
 
-				// TODO: Add Weapon summed non vital parts flea market prices (toggleable)
-
 				var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
 				if (isInRaid && shouldShowPricePerSlotAndPerKgInRaid)
 				{
@@ -245,8 +260,7 @@ namespace LootValue
 					var unitPrice = sellToTrader ? (finalTraderPrice / stackAmount) : FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
 					var pricePerWeight = (int)(unitPrice / item.GetSingleItemTotalWeight());
 
-					AppendSeparator(ref text, "#555555");
-
+					AppendSeparator(ref text);
 					StartSizeTag(ref text, 11);
 					AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
 					AppendNewLineToTooltipText(ref text);
@@ -337,7 +351,7 @@ namespace LootValue
 				}
 				else if (flags.shouldSellToTraderDueToProfitThreshold)
 				{
-					return "due to low price";
+					return "due to low flea profit";
 				}
 				return "due to no reason :)";
 			}

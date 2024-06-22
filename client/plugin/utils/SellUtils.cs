@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Aki.Reflection.Utils;
@@ -22,16 +23,28 @@ namespace LootValue
 			return LootValueMod.IgnoreFleaMaxOfferCount.Value || Session.RagFair.MyOffersCount < Session.RagFair.GetMaxOffersCount(Session.RagFair.MyRating);
 		}
 
+		public static int GetFleaValue(IEnumerable<Item> items)
+		{
+
+			return items.Select(item => GetFleaValue(item)).Sum();
+		}
+
 		public static int GetFleaValue(Item item)
 		{
 
+			if (!item.Template.CanSellOnRagfair)
+			{
+				return 0;
+			}
+
 			var price = FleaPriceCache.FetchPrice(item.TemplateId);
+
 			if (!price.HasValue)
 			{
 				return 0;
 			}
 
-			return (int)price.Value;
+			return (int) price.Value;
 		}
 
 		public static int GetFleaMarketUnitPrice(Item item)
@@ -180,8 +193,8 @@ namespace LootValue
 				return;
 			}
 
-			var itemsSimilarToTheOneImSelling = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item);
-			SellToFlea(item, itemsSimilarToTheOneImSelling);
+			var similarBundledItems = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item);
+			SellToFlea(item, similarBundledItems);
 		}
 
 		public static void SellToFlea(Item itemToCheck, IEnumerable<Item> itemsToSell)

@@ -1,12 +1,12 @@
-using System;
 using System.Linq;
 using EFT.InventoryLogic;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace LootValue
 {
 
-	internal class ItemUtils
+    internal class ItemUtils
 	{
 
 		public static float GetResourcePercentageOfItem(Item item)
@@ -87,6 +87,33 @@ namespace LootValue
 			}
 			return weapon.MissingVitalParts.Any<Slot>();
 		}
+
+		public static IEnumerable<Item> GetWeaponNonVitalMods(Item item)
+		{
+			if (!(item is Weapon weapon))
+			{
+				return new Collection<Item>();
+			}
+			
+			var mods = weapon.Mods;
+			var vitalItems = weapon.VitalParts
+									.Select(slot => slot.ContainedItem) // get all vital items from their respective slot
+									.Where(contained => contained != null); // only keep those not null
+			
+			var nonVitalMods = mods.Where(mod => !vitalItems.Contains(mod) );
+			return nonVitalMods;
+		}
+
+		public static bool IsItemWeapon(Item item)
+		{
+			if (item is Weapon)
+			{
+				return true;
+			}
+			
+			return false;
+		}
+
 
 		public static bool IsItemBelowDurability(Item hoveredItem, int durabilityThreshold)
 		{
