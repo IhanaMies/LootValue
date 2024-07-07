@@ -4,16 +4,15 @@ using EFT;
 using EFT.UI.DragAndDrop;
 using EFT.InventoryLogic;
 using EFT.UI;
-using Aki.Reflection.Patching;
-using Aki.Reflection.Utils;
-using CurrencyUtil = GClass2517;
-using FleaRequirement = GClass1844;
+using SPT.Reflection.Patching;
+using SPT.Reflection.Utils;
+using CurrencyUtil = GClass2531;
+using FleaRequirement = GClass1859;
 using static LootValue.Globals;
 using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
@@ -21,6 +20,7 @@ using Comfort.Common;
 using System.Threading;
 using HarmonyLib;
 using System.Linq;
+using UnityEngine.EventSystems;
 
 namespace LootValue
 {
@@ -30,7 +30,7 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "2.0.3";
+        public const string pluginVersion = "3.0.0";
 
 		private void Awake()
 		{
@@ -452,7 +452,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		{
 			TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
 
-			GClass2047.Class1737 @class = new GClass2047.Class1737();
+			GClass2063.Class1765 @class = new GClass2063.Class1765();
 			@class.source = new TaskCompletionSource<bool>();
 
 			var itemRef = new EFT.Trading.TradingItemReference
@@ -512,7 +512,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			bool inRaidAndCanShowInRaid = HasRaidStarted() && LootValueMod.showFleaPricesInRaid.Value;
 
-			if (hoveredItem != null && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid))
+			if (hoveredItem != null && Session.Profile.Examined(hoveredItem) && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid))
 			{
 				tooltip = __instance;
 
