@@ -474,14 +474,17 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			if (Session.RagFair.Available && fleaPrice.HasValue)
 			{
+				if (!HasFleaSlotToSell(item))
+				{
+					NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
+					return;
+				}
+
 				var g = new FleaRequirement()
 				{
 					count = fleaPrice.Value - 1, //undercut by 1 ruble
 					_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
 				};
-
-				if (!HasFleaSlotToSell(item))
-					NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
 
 				FleaRequirement[] gs = new FleaRequirement[1] { g };
 				Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
