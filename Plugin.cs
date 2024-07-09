@@ -98,14 +98,16 @@ namespace LootValue
 
 		internal static ConfigEntry<string> TraderBlacklist;
 
+		internal static ConfigEntry<KeyboardShortcut> QuicksellModifier;
+
 		private void SetupConfig()
 		{
-			OneButtonQuickSell = Config.Bind("Quick Sell", "One button quick sell", false);
-			OneButtonQuickSellFlea = Config.Bind("Quick Sell", "One button quick only. Sell FIR item to trader if flea orders are full", false);
+			OneButtonQuickSell = Config.Bind("Quick Sell", "One button quick sell", false, "Selling is done using LMB only. Attempts to sell to flea and then to trader if the option is enabled");
+			OneButtonQuickSellFlea = Config.Bind("Quick Sell", "Sell to trader if no flea slots left", true, "Does nothing if 'Ignore flea max offer count' is enabled");
 			OnlyShowTotalValue = Config.Bind("Quick Sell", "Only show total value", false);
-			EnableQuickSell = Config.Bind("Quick Sell", "Enable quick sell", true, "Hold Left Alt + Left Shift while left clicking an item to quick sell either to flea (if enabled) or trader which ever has better value");
-			EnableFleaQuickSell = Config.Bind("Quick Sell", "Enable flea quick sell", true);
-			ShowFleaPriceBeforeAccess = Config.Bind("Flea", "Show flea price before access", false);
+			EnableQuickSell = Config.Bind("Quick Sell", "Enable quick selling", true);
+			EnableFleaQuickSell = Config.Bind("Quick Sell", "Enable quick selling to flea", true, "Does nothing if quick selling is disabled");
+			ShowFleaPriceBeforeAccess = Config.Bind("Flea", "Show flea price before having access to flea (character level 15)", false);
 			IgnoreFleaMaxOfferCount = Config.Bind("Flea", "Ignore flea max offer count", false);
 
 			UseCustomColours = Config.Bind("Colours", "Use custom colours", false);
@@ -128,6 +130,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
             if (UseCustomColours.Value)
 				SlotColoring.ReadColors(CustomColours.Value);
+
+			QuicksellModifier = Config.Bind("General", "Modifier to enable quickselling", new KeyboardShortcut(KeyCode.LeftAlt, new KeyCode[1] { KeyCode.LeftShift }), "Modifier to enable quickselling. Two button mode: Left Mouse Button sell to trader. Right Mouse Button sell to flea. One button mode: Left Mouse Button both");
 		}
 	}
 
@@ -320,7 +324,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			{
 				if (tooltip != null)
 				{
-					logger.Log(LogLevel.Info, $"Close tooltip - Prefix start");
 					tooltip.Close();
 					tooltip = null;
 					hoveredItem = null;
@@ -336,11 +339,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 				if (LootValueMod.EnableQuickSell.Value && !Globals.HasRaidStarted())
 				{
-					if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.LeftAlt))
+					if (IsKeyPressed(LootValueMod.QuicksellModifier.Value))
 					{
-						logger.LogInfo($"Quicksell item");
-
-						//One button quicksell
 						if (LootValueMod.OneButtonQuickSell.Value)
 						{
 							if (button == PointerEventData.InputButton.Left)
@@ -348,8 +348,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 								TraderOffer bestTraderOffer = GetBestTraderOffer(item);
 								double? fleaPrice = null;
 
-								if (item.MarkedAsSpawnedInSession)
-									fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
+								fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
 
 								if (bestTraderOffer != null)
 								{
@@ -370,7 +369,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 											return false;
 										}
-										logger.Log(LogLevel.Info, $"1 Button Sell Flea");
 
 										if (!HasFleaSlotToSell(item))
 											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
@@ -383,8 +381,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 										FleaRequirement[] gs = new FleaRequirement[1] { g };
 										Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
-
-										logger.Log(LogLevel.Info, $"1 Button Sell Flea Done");
 									}
 									else
 									{
@@ -408,7 +404,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 						}
 					}
 				}
-
 			}
 			catch (Exception ex)
 			{
@@ -472,7 +467,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 		static void SellToFlea(Item item)
 		{
-			if (!item.MarkedAsSpawnedInSession || !Session.RagFair.Available)
+			if (!Session.RagFair.Available)
 				return;
 
 			double? fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
@@ -491,6 +486,19 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				FleaRequirement[] gs = new FleaRequirement[1] { g };
 				Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
 			}
+		}
+
+		//Credit to DrakiaXYZ. Modified by me
+		static bool IsKeyPressed(KeyboardShortcut key)
+		{
+			if (!Input.GetKey(key.MainKey))
+				return false;
+
+			foreach (var modifier in key.Modifiers)
+				if (!Input.GetKey(modifier))
+					return false;
+
+			return true;
 		}
 	}
 
@@ -525,22 +533,19 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 					foreach (Mod mod in weapon.Mods)
 					{
-						if (mod.MarkedAsSpawnedInSession)
-						{
-							double? fleaPrice = FleaPriceCache.FetchPrice(mod.TemplateId);
+						double? fleaPrice = FleaPriceCache.FetchPrice(mod.TemplateId);
 
-							if (fleaPrice.HasValue)
-							{
-								isFleaEligible = true;
-								totalFleaPrice += fleaPrice.Value * mod.StackObjectsCount;
-							}
+						if (fleaPrice.HasValue)
+						{
+							isFleaEligible = true;
+							totalFleaPrice += fleaPrice.Value * mod.StackObjectsCount;
 						}
 					}
 
 					if (totalFleaPrice > 0)
 						lowestFleaOffer = totalFleaPrice;
 				}
-				else if (hoveredItem.MarkedAsSpawnedInSession)
+				else
 				{
 					double? fleaPrice = FleaPriceCache.FetchPrice(hoveredItem.TemplateId);
 
