@@ -14,7 +14,7 @@ using BepInEx.Logging;
 using BepInEx.Configuration;
 using UnityEngine;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+
 using System.Threading.Tasks;
 using Comfort.Common;
 using System.Threading;
@@ -316,6 +316,9 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 		private static HashSet<string> itemSells = new HashSet<string>();
 
+		private static DateTime lastFleaSellNotification = DateTime.MinValue;
+		private static readonly int minSecondsBetweenNotifications = 30;
+
 		[PatchPrefix]
 		static bool Prefix(GridItemView __instance, PointerEventData.InputButton button, Vector2 position, bool doubleClick)
 		{
@@ -341,6 +344,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				{
 					if (IsKeyPressed(LootValueMod.QuicksellModifier.Value))
 					{
+
 						if (LootValueMod.OneButtonQuickSell.Value)
 						{
 							if (button == PointerEventData.InputButton.Left)
@@ -348,13 +352,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 								TraderOffer bestTraderOffer = GetBestTraderOffer(item);
 								double? fleaPrice = null;
 
-								fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
+								fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(item.TemplateId)).Result;
 
 								if (bestTraderOffer != null)
 								{
 									if (fleaPrice.HasValue && fleaPrice.Value > bestTraderOffer.Price)
 									{
-										if (!HasFleaSlotToSell(item))
+										if (!HasFleaSlotToSell())
 										{
 											itemSells.Remove(item.Id);
 											if (LootValueMod.OneButtonQuickSellFlea.Value)
@@ -370,17 +374,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 											return false;
 										}
 
-										if (!HasFleaSlotToSell(item))
-											NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
-
-										var g = new FleaRequirement()
-										{
-											count = fleaPrice.Value - 1, //undercut by 1 ruble
-											_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
-										};
-
-										FleaRequirement[] gs = new FleaRequirement[1] { g };
-										Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
+										TryAddOfferToFlea(item, fleaPrice.Value);
 									}
 									else
 									{
@@ -422,6 +416,20 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			return runOriginalMethod;
 		}
 
+		static bool IsItemInStashAndNotInContainer(Item item)
+		{
+			if (item.Parent.Container.ParentItem is StashClass)
+				return true;
+
+			if (lastFleaSellNotification.AddSeconds(minSecondsBetweenNotifications) < DateTime.Now)
+			{
+				lastFleaSellNotification = DateTime.Now;
+				NotificationManagerClass.DisplayWarningNotification("Flea quicksell from a container or character is broken. Wait for SPT fix");
+			}
+
+			return false;
+		}
+
 		static void SellToTrader(Item item)
 		{
 			string itemId = item.Id;
@@ -460,7 +468,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.TradeOperationComplete);
 		}
 
-		static bool HasFleaSlotToSell(Item item)
+		static bool HasFleaSlotToSell()
 		{
 			return LootValueMod.IgnoreFleaMaxOfferCount.Value || Session.RagFair.MyOffersCount < Session.RagFair.GetMaxOffersCount(Session.RagFair.MyRating);
 		}
@@ -470,24 +478,38 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			if (!Session.RagFair.Available)
 				return;
 
-			double? fleaPrice = FleaPriceCache.FetchPrice(item.TemplateId);
+			double? fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(item.TemplateId)).Result;
 
 			if (Session.RagFair.Available && fleaPrice.HasValue)
 			{
-				if (!HasFleaSlotToSell(item))
+				if (!HasFleaSlotToSell())
 				{
 					NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
 					return;
 				}
 
+				if (!Session.Profile.Inventory.Stash.Contains(item))
+				{
+					NotificationManagerClass.DisplayWarningNotification("Quickselling to flea can only be done from stash");
+					return;
+				}
+
+				TryAddOfferToFlea(item, fleaPrice.Value);
+			}
+		}
+
+		static void TryAddOfferToFlea(Item item, double unadjustedPrice)
+		{
+			if (IsItemInStashAndNotInContainer(item))
+			{
 				var g = new FleaRequirement()
 				{
-					count = fleaPrice.Value - 1, //undercut by 1 ruble
+					count = unadjustedPrice - 1, //undercut by 1 ruble
 					_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
 				};
 
 				FleaRequirement[] gs = new FleaRequirement[1] { g };
-				Globals.Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
+				Session.RagFair.AddOffer(false, new string[1] { item.Id }, gs, null);
 			}
 		}
 
@@ -510,7 +532,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		protected override MethodBase GetTargetMethod()
 		{
 			return typeof(SimpleTooltip).GetMethods(BindingFlags.Instance | BindingFlags.Public).Where(x => x.Name == "Show").ToList()[0];
-			//return typeof(SimpleTooltip).GetMethod("Show", BindingFlags.Instance | BindingFlags.Public);
 		}
 
 		[PatchPrefix]
@@ -525,7 +546,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			if (hoveredItem != null && Session.Profile.Examined(hoveredItem) && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid))
 			{
-				tooltip = __instance;
+				tooltip = __instance;			
 
 				TraderOffer bestTraderOffer = GetBestTraderOffer(hoveredItem);
 
@@ -536,7 +557,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 					foreach (Mod mod in weapon.Mods)
 					{
-						double? fleaPrice = FleaPriceCache.FetchPrice(mod.TemplateId);
+						double? fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(mod.TemplateId)).Result;
 
 						if (fleaPrice.HasValue)
 						{
@@ -550,7 +571,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				}
 				else
 				{
-					double? fleaPrice = FleaPriceCache.FetchPrice(hoveredItem.TemplateId);
+					double? fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(hoveredItem.TemplateId)).Result;
 
 					if (fleaPrice.HasValue)
 					{
