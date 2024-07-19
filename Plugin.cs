@@ -418,16 +418,17 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 		static bool IsItemInStashAndNotInContainer(Item item)
 		{
-			if (item.Parent.Container.ParentItem is StashClass)
-				return true;
+			return true;
+			//if (item.Parent.Container.ParentItem is StashClass)
+			//	return true;
 
-			if (lastFleaSellNotification.AddSeconds(minSecondsBetweenNotifications) < DateTime.Now)
-			{
-				lastFleaSellNotification = DateTime.Now;
-				NotificationManagerClass.DisplayWarningNotification("Flea quicksell from a container or character is broken. Wait for SPT fix");
-			}
+			//if (lastFleaSellNotification.AddSeconds(minSecondsBetweenNotifications) < DateTime.Now)
+			//{
+			//	lastFleaSellNotification = DateTime.Now;
+			//	NotificationManagerClass.DisplayWarningNotification("Flea quicksell from a container or character is broken. Wait for SPT fix");
+			//}
 
-			return false;
+			//return false;
 		}
 
 		static void SellToTrader(Item item)
@@ -485,12 +486,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				if (!HasFleaSlotToSell())
 				{
 					NotificationManagerClass.DisplayWarningNotification("Maximum number of flea offers reached");
-					return;
-				}
-
-				if (!Session.Profile.Inventory.Stash.Contains(item))
-				{
-					NotificationManagerClass.DisplayWarningNotification("Quickselling to flea can only be done from stash");
 					return;
 				}
 
