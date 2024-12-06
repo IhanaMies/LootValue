@@ -6,8 +6,8 @@ using EFT.InventoryLogic;
 using EFT.UI;
 using SPT.Reflection.Patching;
 using SPT.Reflection.Utils;
-using CurrencyUtil = GClass2531;
-using FleaRequirement = GClass1859;
+using CurrencyUtil = GClass2867;
+using FleaRequirement = GClass2059;
 using static LootValue.Globals;
 using BepInEx;
 using BepInEx.Logging;
@@ -17,10 +17,9 @@ using System.Collections.Generic;
 
 using System.Threading.Tasks;
 using Comfort.Common;
-using System.Threading;
-using HarmonyLib;
 using System.Linq;
 using UnityEngine.EventSystems;
+using static EFT.Player;
 
 namespace LootValue
 {
@@ -30,7 +29,7 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "3.0.0";
+        public const string pluginVersion = "4.0.0";
 
 		private void Awake()
 		{
@@ -151,8 +150,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		private static readonly FieldInfo InventoryControllerField =
 			typeof(Player).GetField("_inventoryController", BindingFlags.NonPublic | BindingFlags.Instance);
 
-		public static InventoryControllerClass GetInventoryController(this Player player) =>
-			InventoryControllerField.GetValue(player) as InventoryControllerClass;
+		public static PlayerInventoryController GetInventoryController(this Player player) =>
+			InventoryControllerField.GetValue(player) as PlayerInventoryController;
 	}
 
 	internal static class Globals
@@ -197,7 +196,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					if (blacklistedTraders.Contains(trader.Id.ToLower()))
 						continue;
 
-                    if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
+                    if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked || trader.Settings.AvailableInRaid)
 						continue;
 
 					if (GetTraderOffer(weapon, trader) is TraderOffer offer)
@@ -214,7 +213,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					if (blacklistedTraders.Contains(trader.Id.ToLower()))
 						continue;
 
-                    if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked)
+                    if (!trader.Info.Available || trader.Info.Disabled || !trader.Info.Unlocked || trader.Settings.AvailableInRaid)
 						continue;
 
 					if (GetTraderOffer(item, trader) is TraderOffer offer)
@@ -235,17 +234,15 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		private static TraderOffer GetTraderOffer(Item item, TraderClass trader)
 		{
 			var result = trader.GetUserItemPrice(item);
-			if (result == null)
-				return null;
 
-			return new TraderOffer(
+			return result.HasValue ? new TraderOffer(
 				trader.Id,
 				trader.LocalizedName,
 				result.Value.Amount,
-				CurrencyUtil.GetCurrencyCharById(result.Value.CurrencyId),
-				trader.GetSupplyData().CurrencyCourses[result.Value.CurrencyId],
+				CurrencyUtil.GetCurrencyCharById(result.Value.CurrencyId.Value),
+				trader.GetSupplyData().CurrencyCourses[result.Value.CurrencyId.Value],
 				item.StackObjectsCount
-			);
+			) : null;
 		}
 
 		public sealed class TraderOffer
@@ -456,7 +453,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		{
 			TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
 
-			GClass2063.Class1765 @class = new GClass2063.Class1765();
+			var @class = new GClass2287.Class1895();
 			@class.source = new TaskCompletionSource<bool>();
 
 			var itemRef = new EFT.Trading.TradingItemReference
@@ -530,7 +527,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		}
 
 		[PatchPrefix]
-		private static void Prefix(ref string text, ref float delay, SimpleTooltip __instance)
+		private static void Prefix(ref string text, ref Vector2? offset, ref float delay, SimpleTooltip __instance)
 		{
 			delay = 0;
 
@@ -541,7 +538,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			if (hoveredItem != null && Session.Profile.Examined(hoveredItem) && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid))
 			{
-				tooltip = __instance;			
+				tooltip = __instance;
 
 				TraderOffer bestTraderOffer = GetBestTraderOffer(hoveredItem);
 

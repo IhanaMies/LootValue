@@ -1,14 +1,8 @@
-﻿using SPT.Common.Http;
-using SPT.Common.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using static LootValue.Globals;
-using static System.Collections.Specialized.BitVector32;
-using System.IO;
 
 namespace LootValue
 {
@@ -56,10 +50,7 @@ namespace LootValue
 					return null;
 				}
 
-				if (update)
-					cache[templateId].Update(price);
-				else
-					cache[templateId] = new CachePrice(price);
+				cache[templateId] = new CachePrice(price);
 
 				return price;
 			}
@@ -68,18 +59,12 @@ namespace LootValue
 		}
 	}
 
-	internal class CachePrice
+	internal struct CachePrice
 	{
 		public double price { get; private set; }
 		public DateTime lastUpdate { get; private set; }
 
 		public CachePrice(double price)
-		{
-			this.price = price;
-			lastUpdate = DateTime.Now;
-		}
-
-		public void Update(double price)
 		{
 			this.price = price;
 			lastUpdate = DateTime.Now;
