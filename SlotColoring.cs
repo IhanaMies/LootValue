@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+﻿using System.Collections.Generic;
 using static LootValue.Globals;
 
 namespace LootValue
@@ -73,7 +68,9 @@ namespace LootValue
 			}
 			else
 			{
-				logger.LogError($"Custom colors string format was invalid. Load default colors");
+				string msg = $"Custom colors string format was invalid. Load default colors";
+				logger.LogWarning(msg);
+				NotificationManagerClass.DisplayWarningNotification(msg);
 				UseDefaultColors();
 			}
 		}
@@ -94,13 +91,17 @@ namespace LootValue
 
 				if (!bound.StartsWith("["))
 				{
-					logger.LogWarning($"Custom color format failed. Entry #{i} must start with an [");
+					string msg = $"Custom color format failed. Entry #{i} must start with an [";
+					logger.LogWarning(msg);
+					NotificationManagerClass.DisplayWarningNotification(msg);
 					return false;
 				} 
 
 				if (!bound.EndsWith("]"))
 				{
-					logger.LogWarning($"Custom color format failed. Entry #{i} must end with an ]");
+					string msg = $"Custom color format failed. Entry #{i} must end with an ]";
+					logger.LogWarning(msg);
+					NotificationManagerClass.DisplayWarningNotification(msg);
 					return false;
 				}
 
@@ -113,14 +114,18 @@ namespace LootValue
 							continue;
 						else
 						{
-							logger.LogWarning($"Custom color format failed. Entry #{i} has invalid upper bound");
+							string msg = $"Custom color format failed. Entry #{i} has invalid upper bound";
+							logger.LogWarning(msg);
+							NotificationManagerClass.DisplayWarningNotification(msg);
 							return false;
 						}
 					}
 				}
 				else
 				{
-					logger.LogWarning($"Custom color format failed. Entry #{i} is missing element");
+					string msg = $"Custom color format failed. Entry #{i} is missing element";
+					logger.LogWarning(msg);
+					NotificationManagerClass.DisplayWarningNotification(msg);
 					return false;
 				}
 			}
