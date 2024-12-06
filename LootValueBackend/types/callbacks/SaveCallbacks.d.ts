@@ -1,8 +1,8 @@
-import { OnLoad } from "../di/OnLoad";
-import { OnUpdate } from "../di/OnUpdate";
-import { ICoreConfig } from "../models/spt/config/ICoreConfig";
-import { ConfigServer } from "../servers/ConfigServer";
-import { SaveServer } from "../servers/SaveServer";
+import { OnLoad } from "@spt/di/OnLoad";
+import { OnUpdate } from "@spt/di/OnUpdate";
+import { ICoreConfig } from "@spt/models/spt/config/ICoreConfig";
+import { ConfigServer } from "@spt/servers/ConfigServer";
+import { SaveServer } from "@spt/servers/SaveServer";
 export declare class SaveCallbacks implements OnLoad, OnUpdate {
     protected saveServer: SaveServer;
     protected configServer: ConfigServer;

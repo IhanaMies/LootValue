@@ -1,10 +1,10 @@
-import { MinMax } from "../../../models/common/MinMax";
-import { SeasonalEventType } from "../../../models/enums/SeasonalEventType";
-import { ELocationName } from "../../enums/ELocationName";
-import { IBaseConfig } from "./IBaseConfig";
+import { MinMax } from "@spt/models/common/MinMax";
+import { ELocationName } from "@spt/models/enums/ELocationName";
+import { SeasonalEventType } from "@spt/models/enums/SeasonalEventType";
+import { IBaseConfig } from "@spt/models/spt/config/IBaseConfig";
 export interface IQuestConfig extends IBaseConfig {
-    kind: "aki-quest";
-    redeemTime: number;
+    kind: "spt-quest";
+    mailRedeemTimeHours: Record<string, number>;
     questTemplateIds: IPlayerTypeQuestIds;
     /** Show non-seasonal quests be shown to player */
     showNonSeasonalEventQuests: boolean;
@@ -13,6 +13,10 @@ export interface IQuestConfig extends IBaseConfig {
     locationIdMap: Record<string, string>;
     bearOnlyQuests: string[];
     usecOnlyQuests: string[];
+    /** Quests that the keyed game version do not see/access */
+    profileBlacklist: Record<string, string[]>;
+    /** key=questid, gameversions that can see/access quest */
+    profileWhitelist: Record<string, string[]>;
 }
 export interface IPlayerTypeQuestIds {
     pmc: IQuestTypeIds;
@@ -31,6 +35,7 @@ export interface IEventQuestData {
     yearly: boolean;
 }
 export interface IRepeatableQuestConfig {
+    id: string;
     name: string;
     side: string;
     types: string[];
@@ -46,41 +51,61 @@ export interface IRepeatableQuestConfig {
     /** Item tplIds to ignore when generating rewards */
     rewardBlacklist: string[];
     rewardAmmoStackMinSize: number;
+    freeChangesAvailable: number;
+    freeChanges: number;
+    keepDailyQuestTypeOnReplacement: boolean;
 }
 export interface IRewardScaling {
     levels: number[];
     experience: number[];
     roubles: number[];
+    gpCoins: number[];
     items: number[];
     reputation: number[];
     rewardSpread: number;
+    skillRewardChance: number[];
+    skillPointReward: number[];
 }
 export interface ITraderWhitelist {
     traderId: string;
     questTypes: string[];
+    rewardBaseWhitelist: string[];
+    rewardCanBeWeapon: boolean;
+    weaponRewardChancePercent: number;
 }
 export interface IRepeatableQuestTypesConfig {
     Exploration: IExploration;
     Completion: ICompletion;
+    Pickup: IPickup;
     Elimination: IEliminationConfig[];
 }
-export interface IExploration {
+export interface IExploration extends IBaseQuestConfig {
     maxExtracts: number;
+    maxExtractsWithSpecificExit: number;
     specificExits: ISpecificExits;
 }
 export interface ISpecificExits {
     probability: number;
     passageRequirementWhitelist: string[];
 }
-export interface ICompletion {
+export interface ICompletion extends IBaseQuestConfig {
     minRequestedAmount: number;
     maxRequestedAmount: number;
+    uniqueItemCount: number;
     minRequestedBulletAmount: number;
     maxRequestedBulletAmount: number;
     useWhitelist: boolean;
     useBlacklist: boolean;
 }
-export interface IEliminationConfig {
+export interface IPickup extends IBaseQuestConfig {
+    ItemTypeToFetchWithMaxCount: IPickupTypeWithMaxCount[];
+}
+export interface IPickupTypeWithMaxCount {
+    itemType: string;
+    maxPickupCount: number;
+    minPickupCount: number;
+}
+export interface IEliminationConfig extends IBaseQuestConfig {
     levelRange: MinMax;
     targets: ITarget[];
     bodyPartProb: number;
@@ -92,14 +117,29 @@ export interface IEliminationConfig {
     minDist: number;
     maxKills: number;
     minKills: number;
+    minBossKills: number;
+    maxBossKills: number;
+    minPmcKills: number;
+    maxPmcKills: number;
+    weaponCategoryRequirementProb: number;
+    weaponCategoryRequirements: IWeaponRequirement[];
+    weaponRequirementProb: number;
+    weaponRequirements: IWeaponRequirement[];
+}
+export interface IBaseQuestConfig {
+    possibleSkillRewards: string[];
 }
 export interface ITarget extends IProbabilityObject {
     data: IBossInfo;
 }
 export interface IBossInfo {
     isBoss: boolean;
+    isPmc: boolean;
 }
 export interface IBodyPart extends IProbabilityObject {
+    data: string[];
+}
+export interface IWeaponRequirement extends IProbabilityObject {
     data: string[];
 }
 export interface IProbabilityObject {

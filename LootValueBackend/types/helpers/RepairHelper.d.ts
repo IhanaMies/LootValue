@@ -1,19 +1,19 @@
-import { Item } from "../models/eft/common/tables/IItem";
-import { ITemplateItem, Props } from "../models/eft/common/tables/ITemplateItem";
-import { IRepairConfig } from "../models/spt/config/IRepairConfig";
-import { ILogger } from "../models/spt/utils/ILogger";
-import { ConfigServer } from "../servers/ConfigServer";
-import { DatabaseServer } from "../servers/DatabaseServer";
-import { JsonUtil } from "../utils/JsonUtil";
-import { RandomUtil } from "../utils/RandomUtil";
+import { IItem } from "@spt/models/eft/common/tables/IItem";
+import { IProps, ITemplateItem } from "@spt/models/eft/common/tables/ITemplateItem";
+import { IRepairConfig } from "@spt/models/spt/config/IRepairConfig";
+import { ILogger } from "@spt/models/spt/utils/ILogger";
+import { ConfigServer } from "@spt/servers/ConfigServer";
+import { DatabaseService } from "@spt/services/DatabaseService";
+import { RandomUtil } from "@spt/utils/RandomUtil";
+import { ICloner } from "@spt/utils/cloners/ICloner";
 export declare class RepairHelper {
     protected logger: ILogger;
-    protected jsonUtil: JsonUtil;
     protected randomUtil: RandomUtil;
-    protected databaseServer: DatabaseServer;
+    protected databaseService: DatabaseService;
     protected configServer: ConfigServer;
+    protected cloner: ICloner;
     protected repairConfig: IRepairConfig;
-    constructor(logger: ILogger, jsonUtil: JsonUtil, randomUtil: RandomUtil, databaseServer: DatabaseServer, configServer: ConfigServer);
+    constructor(logger: ILogger, randomUtil: RandomUtil, databaseService: DatabaseService, configServer: ConfigServer, cloner: ICloner);
     /**
      * Alter an items durability after a repair by trader/repair kit
      * @param itemToRepair item to update durability details
@@ -24,13 +24,23 @@ export declare class RepairHelper {
      * @param traderQualityMultipler Trader quality value from traders base json
      * @param applyMaxDurabilityDegradation should item have max durability reduced
      */
-    updateItemDurability(itemToRepair: Item, itemToRepairDetails: ITemplateItem, isArmor: boolean, amountToRepair: number, useRepairKit: boolean, traderQualityMultipler: number, applyMaxDurabilityDegradation?: boolean): void;
-    protected getRandomisedArmorRepairDegradationValue(armorMaterial: string, isRepairKit: boolean, armorMax: number, traderQualityMultipler: number): number;
-    protected getRandomisedWeaponRepairDegradationValue(itemProps: Props, isRepairKit: boolean, weaponMax: number, traderQualityMultipler: number): number;
+    updateItemDurability(itemToRepair: IItem, itemToRepairDetails: ITemplateItem, isArmor: boolean, amountToRepair: number, useRepairKit: boolean, traderQualityMultipler: number, applyMaxDurabilityDegradation?: boolean): void;
     /**
-     * Is the supplied tpl a weapon
-     * @param tpl tplId to check is a weapon
-     * @returns true if tpl is a weapon
+     * Repairing armor reduces the total durability value slightly, get a randomised (to 2dp) amount based on armor material
+     * @param armorMaterial What material is the armor being repaired made of
+     * @param isRepairKit Was a repair kit used
+     * @param armorMax Max amount of durability item can have
+     * @param traderQualityMultipler Different traders produce different loss values
+     * @returns Amount to reduce max durability by
      */
-    isWeaponTemplate(tpl: string): boolean;
+    protected getRandomisedArmorRepairDegradationValue(armorMaterial: string, isRepairKit: boolean, armorMax: number, traderQualityMultipler: number): number;
+    /**
+     * Repairing weapons reduces the total durability value slightly, get a randomised (to 2dp) amount
+     * @param itemProps Weapon properties
+     * @param isRepairKit Was a repair kit used
+     * @param weaponMax ax amount of durability item can have
+     * @param traderQualityMultipler Different traders produce different loss values
+     * @returns Amount to reduce max durability by
+     */
+    protected getRandomisedWeaponRepairDegradationValue(itemProps: IProps, isRepairKit: boolean, weaponMax: number, traderQualityMultipler: number): number;
 }

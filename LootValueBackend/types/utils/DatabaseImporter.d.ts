@@ -1,15 +1,15 @@
-import { OnLoad } from "../di/OnLoad";
-import { IHttpConfig } from "../models/spt/config/IHttpConfig";
-import { ILogger } from "../models/spt/utils/ILogger";
-import { ImageRouter } from "../routers/ImageRouter";
-import { ConfigServer } from "../servers/ConfigServer";
-import { DatabaseServer } from "../servers/DatabaseServer";
-import { LocalisationService } from "../services/LocalisationService";
-import { EncodingUtil } from "./EncodingUtil";
-import { HashUtil } from "./HashUtil";
-import { ImporterUtil } from "./ImporterUtil";
-import { JsonUtil } from "./JsonUtil";
-import { VFS } from "./VFS";
+import { OnLoad } from "@spt/di/OnLoad";
+import { IHttpConfig } from "@spt/models/spt/config/IHttpConfig";
+import { ILogger } from "@spt/models/spt/utils/ILogger";
+import { ImageRouter } from "@spt/routers/ImageRouter";
+import { ConfigServer } from "@spt/servers/ConfigServer";
+import { DatabaseServer } from "@spt/servers/DatabaseServer";
+import { LocalisationService } from "@spt/services/LocalisationService";
+import { EncodingUtil } from "@spt/utils/EncodingUtil";
+import { HashUtil } from "@spt/utils/HashUtil";
+import { ImporterUtil } from "@spt/utils/ImporterUtil";
+import { JsonUtil } from "@spt/utils/JsonUtil";
+import { VFS } from "@spt/utils/VFS";
 export declare class DatabaseImporter implements OnLoad {
     protected logger: ILogger;
     protected vfs: VFS;
@@ -27,7 +27,7 @@ export declare class DatabaseImporter implements OnLoad {
     protected httpConfig: IHttpConfig;
     constructor(logger: ILogger, vfs: VFS, jsonUtil: JsonUtil, localisationService: LocalisationService, databaseServer: DatabaseServer, imageRouter: ImageRouter, encodingUtil: EncodingUtil, hashUtil: HashUtil, importerUtil: ImporterUtil, configServer: ConfigServer);
     /**
-     * Get path to aki data
+     * Get path to spt data
      * @returns path to data
      */
     getSptDataPath(): string;

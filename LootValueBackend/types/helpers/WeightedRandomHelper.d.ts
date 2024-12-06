@@ -1,13 +1,9 @@
 export declare class WeightedRandomHelper {
     /**
-     * @deprecated USE getWeightedValue() WHERE POSSIBLE
-     * Gets a tplId from a weighted dictionary
-     * @param {tplId: weighting[]} itemArray
-     * @returns tplId
+     * Choos an item from the passed in array based on the weightings of each
+     * @param itemArray Items and weights to use
+     * @returns Chosen item from array
      */
-    getWeightedInventoryItem(itemArray: {
-        [tplId: string]: unknown;
-    } | ArrayLike<unknown>): string;
     getWeightedValue<T>(itemArray: {
         [key: string]: unknown;
     } | ArrayLike<unknown>): T;
@@ -25,8 +21,15 @@ export declare class WeightedRandomHelper {
      * @param {number[]} weights
      * @returns {{item: any, index: number}}
      */
-    weightedRandom(items: string | any[], weights: string | any[]): {
+    weightedRandom(items: any[], weights: any[]): {
         item: any;
         index: number;
     };
+    /**
+     * Find the greated common divisor of all weights and use it on the passed in dictionary
+     * @param weightedDict values to reduce
+     */
+    reduceWeightValues(weightedDict: Record<string, number>): void;
+    protected commonDivisor(numbers: number[]): number;
+    protected gcd(a: number, b: number): number;
 }

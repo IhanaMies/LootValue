@@ -1,22 +1,22 @@
-import { INotification } from "../models/eft/notifier/INotifier";
-import { Dialogue, IUserDialogInfo } from "../models/eft/profile/IAkiProfile";
-import { MessageType } from "../models/enums/MessageType";
-import { SaveServer } from "../servers/SaveServer";
-import { WebSocketServer } from "../servers/WebSocketServer";
-import { NotificationService } from "../services/NotificationService";
-import { HashUtil } from "../utils/HashUtil";
+import { IDialogue, IUserDialogInfo } from "@spt/models/eft/profile/ISptProfile";
+import { IWsNotificationEvent } from "@spt/models/eft/ws/IWsNotificationEvent";
+import { MessageType } from "@spt/models/enums/MessageType";
+import { SaveServer } from "@spt/servers/SaveServer";
+import { SptWebSocketConnectionHandler } from "@spt/servers/ws/SptWebSocketConnectionHandler";
+import { NotificationService } from "@spt/services/NotificationService";
+import { HashUtil } from "@spt/utils/HashUtil";
 export declare class NotificationSendHelper {
-    protected webSocketServer: WebSocketServer;
+    protected sptWebSocketConnection: SptWebSocketConnectionHandler;
     protected hashUtil: HashUtil;
     protected saveServer: SaveServer;
     protected notificationService: NotificationService;
-    constructor(webSocketServer: WebSocketServer, hashUtil: HashUtil, saveServer: SaveServer, notificationService: NotificationService);
+    constructor(sptWebSocketConnection: SptWebSocketConnectionHandler, hashUtil: HashUtil, saveServer: SaveServer, notificationService: NotificationService);
     /**
      * Send notification message to the appropriate channel
      * @param sessionID
      * @param notificationMessage
      */
-    sendMessage(sessionID: string, notificationMessage: INotification): void;
+    sendMessage(sessionID: string, notificationMessage: IWsNotificationEvent): void;
     /**
      * Send a message directly to the player
      * @param sessionId Session id
@@ -32,5 +32,5 @@ export declare class NotificationSendHelper {
      * @param senderDetails Who is sending the message
      * @returns Dialogue
      */
-    protected getDialog(sessionId: string, messageType: MessageType, senderDetails: IUserDialogInfo): Dialogue;
+    protected getDialog(sessionId: string, messageType: MessageType, senderDetails: IUserDialogInfo): IDialogue;
 }

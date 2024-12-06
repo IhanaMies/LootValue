@@ -1,22 +1,20 @@
-import { HealthHelper } from "../helpers/HealthHelper";
-import { InventoryHelper } from "../helpers/InventoryHelper";
-import { ItemHelper } from "../helpers/ItemHelper";
-import { IPmcData } from "../models/eft/common/IPmcData";
-import { IHealthTreatmentRequestData } from "../models/eft/health/IHealthTreatmentRequestData";
-import { IOffraidEatRequestData } from "../models/eft/health/IOffraidEatRequestData";
-import { IOffraidHealRequestData } from "../models/eft/health/IOffraidHealRequestData";
-import { ISyncHealthRequestData } from "../models/eft/health/ISyncHealthRequestData";
-import { IWorkoutData } from "../models/eft/health/IWorkoutData";
-import { IItemEventRouterResponse } from "../models/eft/itemEvent/IItemEventRouterResponse";
-import { ILogger } from "../models/spt/utils/ILogger";
-import { EventOutputHolder } from "../routers/EventOutputHolder";
-import { LocalisationService } from "../services/LocalisationService";
-import { PaymentService } from "../services/PaymentService";
-import { HttpResponseUtil } from "../utils/HttpResponseUtil";
-import { JsonUtil } from "../utils/JsonUtil";
+import { HealthHelper } from "@spt/helpers/HealthHelper";
+import { InventoryHelper } from "@spt/helpers/InventoryHelper";
+import { ItemHelper } from "@spt/helpers/ItemHelper";
+import { IPmcData } from "@spt/models/eft/common/IPmcData";
+import { IHealthTreatmentRequestData } from "@spt/models/eft/health/IHealthTreatmentRequestData";
+import { IOffraidEatRequestData } from "@spt/models/eft/health/IOffraidEatRequestData";
+import { IOffraidHealRequestData } from "@spt/models/eft/health/IOffraidHealRequestData";
+import { IWorkoutData } from "@spt/models/eft/health/IWorkoutData";
+import { IItemEventRouterResponse } from "@spt/models/eft/itemEvent/IItemEventRouterResponse";
+import { ILogger } from "@spt/models/spt/utils/ILogger";
+import { EventOutputHolder } from "@spt/routers/EventOutputHolder";
+import { LocalisationService } from "@spt/services/LocalisationService";
+import { PaymentService } from "@spt/services/PaymentService";
+import { HttpResponseUtil } from "@spt/utils/HttpResponseUtil";
+import { ICloner } from "@spt/utils/cloners/ICloner";
 export declare class HealthController {
     protected logger: ILogger;
-    protected jsonUtil: JsonUtil;
     protected eventOutputHolder: EventOutputHolder;
     protected itemHelper: ItemHelper;
     protected paymentService: PaymentService;
@@ -24,16 +22,8 @@ export declare class HealthController {
     protected localisationService: LocalisationService;
     protected httpResponse: HttpResponseUtil;
     protected healthHelper: HealthHelper;
-    constructor(logger: ILogger, jsonUtil: JsonUtil, eventOutputHolder: EventOutputHolder, itemHelper: ItemHelper, paymentService: PaymentService, inventoryHelper: InventoryHelper, localisationService: LocalisationService, httpResponse: HttpResponseUtil, healthHelper: HealthHelper);
-    /**
-     * stores in-raid player health
-     * @param pmcData Player profile
-     * @param info Request data
-     * @param sessionID Player id
-     * @param addEffects Should effects found be added or removed from profile
-     * @param deleteExistingEffects Should all prior effects be removed before apply new ones
-     */
-    saveVitality(pmcData: IPmcData, info: ISyncHealthRequestData, sessionID: string, addEffects?: boolean, deleteExistingEffects?: boolean): void;
+    protected cloner: ICloner;
+    constructor(logger: ILogger, eventOutputHolder: EventOutputHolder, itemHelper: ItemHelper, paymentService: PaymentService, inventoryHelper: InventoryHelper, localisationService: LocalisationService, httpResponse: HttpResponseUtil, healthHelper: HealthHelper, cloner: ICloner);
     /**
      * When healing in menu
      * @param pmcData Player profile

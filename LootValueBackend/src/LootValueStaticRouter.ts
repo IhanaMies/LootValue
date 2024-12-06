@@ -1,18 +1,18 @@
 import { DependencyContainer } from "tsyringe";
-import { RagfairOfferService } from "@spt-aki/services/RagfairOfferService";
-import { ItemHelper } from "@spt-aki/helpers/ItemHelper";
-import { IRagfairOffer } from "@spt-aki/models/eft/ragfair/IRagfairOffer";
-import { TradeHelper } from "@spt-aki/helpers/TradeHelper";
-import { ProfileHelper } from "@spt-aki/helpers/ProfileHelper";
-import { IProcessSellTradeRequestData } from "@spt-aki/models/eft/trade/IProcessSellTradeRequestData";
-import { IItemEventRouterResponse } from "@spt-aki/models/eft/itemEvent/IItemEventRouterResponse";
-import { SaveServer } from '@spt-aki/servers/SaveServer';
+import { RagfairOfferService } from "@spt/services/RagfairOfferService";
+import { ItemHelper } from "@spt/helpers/ItemHelper";
+import { IRagfairOffer } from "@spt/models/eft/ragfair/IRagfairOffer";
+import { TradeHelper } from "@spt/helpers/TradeHelper";
+import { ProfileHelper } from "@spt/helpers/ProfileHelper";
+import { IProcessSellTradeRequestData } from "@spt/models/eft/trade/IProcessSellTradeRequestData";
+import { IItemEventRouterResponse } from "@spt/models/eft/itemEvent/IItemEventRouterResponse";
+import { SaveServer } from '@spt/servers/SaveServer';
 
-import type { IPreAkiLoadMod } from "@spt-aki/models/external/IPreAkiLoadMod";
-import type { ILogger } from "@spt-aki/models/spt/utils/ILogger";
-import type { StaticRouterModService} from "@spt-aki/services/mod/staticRouter/StaticRouterModService";
+import type { IPreSptLoadMod } from "@spt/models/external/IPreSptLoadMod";
+import type { ILogger } from "@spt/models/spt/utils/ILogger";
+import type { StaticRouterModService} from "@spt/services/mod/staticRouter/StaticRouterModService";
 
-class Mod implements IPreAkiLoadMod
+class Mod implements IPreSptLoadMod
 {
 	private itemHelper: ItemHelper;
 	private offerService: RagfairOfferService;
@@ -22,7 +22,7 @@ class Mod implements IPreAkiLoadMod
 
 	private logger: ILogger;
 	
-    public preAkiLoad(container: DependencyContainer): void {
+    public preSptLoad(container: DependencyContainer): void {
         const logger = container.resolve<ILogger>("WinstonLogger");
 		this.logger = logger;
 		

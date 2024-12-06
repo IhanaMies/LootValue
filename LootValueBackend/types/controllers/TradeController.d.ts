@@ -1,57 +1,98 @@
-import { ItemHelper } from "../helpers/ItemHelper";
-import { ProfileHelper } from "../helpers/ProfileHelper";
-import { TradeHelper } from "../helpers/TradeHelper";
-import { TraderHelper } from "../helpers/TraderHelper";
-import { IPmcData } from "../models/eft/common/IPmcData";
-import { Item, Upd } from "../models/eft/common/tables/IItem";
-import { ITraderBase } from "../models/eft/common/tables/ITrader";
-import { IItemEventRouterResponse } from "../models/eft/itemEvent/IItemEventRouterResponse";
-import { IProcessBaseTradeRequestData } from "../models/eft/trade/IProcessBaseTradeRequestData";
-import { IProcessRagfairTradeRequestData } from "../models/eft/trade/IProcessRagfairTradeRequestData";
-import { ISellScavItemsToFenceRequestData } from "../models/eft/trade/ISellScavItemsToFenceRequestData";
-import { Traders } from "../models/enums/Traders";
-import { IRagfairConfig } from "../models/spt/config/IRagfairConfig";
-import { ITraderConfig } from "../models/spt/config/ITraderConfig";
-import { ILogger } from "../models/spt/utils/ILogger";
-import { EventOutputHolder } from "../routers/EventOutputHolder";
-import { ConfigServer } from "../servers/ConfigServer";
-import { RagfairServer } from "../servers/RagfairServer";
-import { LocalisationService } from "../services/LocalisationService";
-import { RagfairPriceService } from "../services/RagfairPriceService";
-import { HttpResponseUtil } from "../utils/HttpResponseUtil";
-import { JsonUtil } from "../utils/JsonUtil";
-declare class TradeController {
+import { ItemHelper } from "@spt/helpers/ItemHelper";
+import { ProfileHelper } from "@spt/helpers/ProfileHelper";
+import { RagfairOfferHelper } from "@spt/helpers/RagfairOfferHelper";
+import { TradeHelper } from "@spt/helpers/TradeHelper";
+import { TraderHelper } from "@spt/helpers/TraderHelper";
+import { IPmcData } from "@spt/models/eft/common/IPmcData";
+import { IItem } from "@spt/models/eft/common/tables/IItem";
+import { ITraderBase } from "@spt/models/eft/common/tables/ITrader";
+import { IItemEventRouterResponse } from "@spt/models/eft/itemEvent/IItemEventRouterResponse";
+import { IRagfairOffer } from "@spt/models/eft/ragfair/IRagfairOffer";
+import { IProcessBaseTradeRequestData } from "@spt/models/eft/trade/IProcessBaseTradeRequestData";
+import { IOfferRequest, IProcessRagfairTradeRequestData } from "@spt/models/eft/trade/IProcessRagfairTradeRequestData";
+import { ISellScavItemsToFenceRequestData } from "@spt/models/eft/trade/ISellScavItemsToFenceRequestData";
+import { Traders } from "@spt/models/enums/Traders";
+import { IRagfairConfig } from "@spt/models/spt/config/IRagfairConfig";
+import { ITraderConfig } from "@spt/models/spt/config/ITraderConfig";
+import { ILogger } from "@spt/models/spt/utils/ILogger";
+import { EventOutputHolder } from "@spt/routers/EventOutputHolder";
+import { ConfigServer } from "@spt/servers/ConfigServer";
+import { RagfairServer } from "@spt/servers/RagfairServer";
+import { DatabaseService } from "@spt/services/DatabaseService";
+import { LocalisationService } from "@spt/services/LocalisationService";
+import { MailSendService } from "@spt/services/MailSendService";
+import { RagfairPriceService } from "@spt/services/RagfairPriceService";
+import { HashUtil } from "@spt/utils/HashUtil";
+import { HttpResponseUtil } from "@spt/utils/HttpResponseUtil";
+import { RandomUtil } from "@spt/utils/RandomUtil";
+import { TimeUtil } from "@spt/utils/TimeUtil";
+export declare class TradeController {
     protected logger: ILogger;
+    protected databaseService: DatabaseService;
     protected eventOutputHolder: EventOutputHolder;
     protected tradeHelper: TradeHelper;
+    protected timeUtil: TimeUtil;
+    protected randomUtil: RandomUtil;
+    protected hashUtil: HashUtil;
     protected itemHelper: ItemHelper;
     protected profileHelper: ProfileHelper;
+    protected ragfairOfferHelper: RagfairOfferHelper;
     protected traderHelper: TraderHelper;
-    protected jsonUtil: JsonUtil;
     protected ragfairServer: RagfairServer;
     protected httpResponse: HttpResponseUtil;
     protected localisationService: LocalisationService;
     protected ragfairPriceService: RagfairPriceService;
+    protected mailSendService: MailSendService;
     protected configServer: ConfigServer;
     protected ragfairConfig: IRagfairConfig;
     protected traderConfig: ITraderConfig;
-    constructor(logger: ILogger, eventOutputHolder: EventOutputHolder, tradeHelper: TradeHelper, itemHelper: ItemHelper, profileHelper: ProfileHelper, traderHelper: TraderHelper, jsonUtil: JsonUtil, ragfairServer: RagfairServer, httpResponse: HttpResponseUtil, localisationService: LocalisationService, ragfairPriceService: RagfairPriceService, configServer: ConfigServer);
+    constructor(logger: ILogger, databaseService: DatabaseService, eventOutputHolder: EventOutputHolder, tradeHelper: TradeHelper, timeUtil: TimeUtil, randomUtil: RandomUtil, hashUtil: HashUtil, itemHelper: ItemHelper, profileHelper: ProfileHelper, ragfairOfferHelper: RagfairOfferHelper, traderHelper: TraderHelper, ragfairServer: RagfairServer, httpResponse: HttpResponseUtil, localisationService: LocalisationService, ragfairPriceService: RagfairPriceService, mailSendService: MailSendService, configServer: ConfigServer);
     /** Handle TradingConfirm event */
     confirmTrading(pmcData: IPmcData, request: IProcessBaseTradeRequestData, sessionID: string): IItemEventRouterResponse;
     /** Handle RagFairBuyOffer event */
-    confirmRagfairTrading(pmcData: IPmcData, body: IProcessRagfairTradeRequestData, sessionID: string): IItemEventRouterResponse;
-    /** Handle SellAllFromSavage event */
-    sellScavItemsToFence(pmcData: IPmcData, body: ISellScavItemsToFenceRequestData, sessionId: string): IItemEventRouterResponse;
+    confirmRagfairTrading(pmcData: IPmcData, request: IProcessRagfairTradeRequestData, sessionID: string): IItemEventRouterResponse;
     /**
-     * Sell all sellable items to a trader from inventory
-     * WILL DELETE ITEMS FROM INVENTORY + CHILDREN OF ITEMS SOLD
+     * Buy an item off the flea sold by a trader
      * @param sessionId Session id
-     * @param profileWithItemsToSell Profile with items to be sold to trader
-     * @param profileThatGetsMoney Profile that gets the money after selling items
-     * @param trader Trader to sell items to
-     * @returns IItemEventRouterResponse
+     * @param pmcData Player profile
+     * @param fleaOffer Offer being purchased
+     * @param requestOffer request data from client
+     * @param output Output to send back to client
      */
-    protected sellInventoryToTrader(sessionId: string, profileWithItemsToSell: IPmcData, profileThatGetsMoney: IPmcData, trader: Traders): IItemEventRouterResponse;
+    protected buyTraderItemFromRagfair(sessionId: string, pmcData: IPmcData, fleaOffer: IRagfairOffer, requestOffer: IOfferRequest, output: IItemEventRouterResponse): void;
+    /**
+     * Buy an item off the flea sold by a PMC
+     * @param sessionId Session id
+     * @param pmcData Player profile
+     * @param fleaOffer Offer being purchased
+     * @param requestOffer Request data from client
+     * @param output Output to send back to client
+     */
+    protected buyPmcItemFromRagfair(sessionId: string, pmcData: IPmcData, fleaOffer: IRagfairOffer, requestOffer: IOfferRequest, output: IItemEventRouterResponse): void;
+    /**
+     * Is the provided offerid and ownerid from a player made offer
+     * @param offerId Id of the offer
+     * @param offerOwnerId Owner id
+     * @returns true if offer was made by a player
+     */
+    protected isPlayerOffer(offerId: string, offerOwnerId: string): boolean;
+    /**
+     * Does Player have necessary trader loyalty to purchase flea offer
+     * @param sellerIsTrader is seller trader
+     * @param fleaOffer Flea offer being bought
+     * @param pmcData Player profile
+     * @returns True if player can buy offer
+     */
+    protected playerLacksTraderLoyaltyLevelToBuyOffer(fleaOffer: IRagfairOffer, pmcData: IPmcData): boolean;
+    /** Handle SellAllFromSavage event */
+    sellScavItemsToFence(pmcData: IPmcData, request: ISellScavItemsToFenceRequestData, sessionId: string): IItemEventRouterResponse;
+    /**
+     * Send the specified rouble total to player as mail
+     * @param sessionId Session id
+     * @param trader Trader to sell items to
+     * @param output IItemEventRouterResponse
+     */
+    protected mailMoneyToPlayer(sessionId: string, roublesToSend: number, trader: Traders): void;
     /**
      * Looks up an items children and gets total handbook price for them
      * @param parentItemId parent item that has children we want to sum price of
@@ -60,7 +101,5 @@ declare class TradeController {
      * @param traderDetails Trader being sold to to perform buy category check against
      * @returns Rouble price
      */
-    protected getPriceOfItemAndChildren(parentItemId: string, items: Item[], handbookPrices: Record<string, number>, traderDetails: ITraderBase): number;
-    protected confirmTradingInternal(pmcData: IPmcData, body: IProcessBaseTradeRequestData, sessionID: string, foundInRaid?: boolean, upd?: Upd): IItemEventRouterResponse;
+    protected getPriceOfItemAndChildren(parentItemId: string, items: IItem[], handbookPrices: Record<string, number>, traderDetails: ITraderBase): number;
 }
-export { TradeController };

@@ -1,7 +1,7 @@
-import { JsonUtil } from "../utils/JsonUtil";
-import { VFS } from "../utils/VFS";
-import { ConfigTypes } from "../models/enums/ConfigTypes";
-import { ILogger } from "../models/spt/utils/ILogger";
+import { ConfigTypes } from "@spt/models/enums/ConfigTypes";
+import { ILogger } from "@spt/models/spt/utils/ILogger";
+import { JsonUtil } from "@spt/utils/JsonUtil";
+import { VFS } from "@spt/utils/VFS";
 export declare class ConfigServer {
     protected logger: ILogger;
     protected vfs: VFS;

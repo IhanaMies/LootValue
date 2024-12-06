@@ -1,29 +1,34 @@
-import { ProfileController } from "../controllers/ProfileController";
-import { IEmptyRequestData } from "../models/eft/common/IEmptyRequestData";
-import { IPmcData } from "../models/eft/common/IPmcData";
-import { IGetBodyResponseData } from "../models/eft/httpResponse/IGetBodyResponseData";
-import { INullResponseData } from "../models/eft/httpResponse/INullResponseData";
-import { IGetMiniProfileRequestData } from "../models/eft/launcher/IGetMiniProfileRequestData";
-import { GetProfileStatusResponseData } from "../models/eft/profile/GetProfileStatusResponseData";
-import { IGetProfileSettingsRequest } from "../models/eft/profile/IGetProfileSettingsRequest";
-import { IProfileChangeNicknameRequestData } from "../models/eft/profile/IProfileChangeNicknameRequestData";
-import { IProfileChangeVoiceRequestData } from "../models/eft/profile/IProfileChangeVoiceRequestData";
-import { IProfileCreateRequestData } from "../models/eft/profile/IProfileCreateRequestData";
-import { ISearchFriendRequestData } from "../models/eft/profile/ISearchFriendRequestData";
-import { ISearchFriendResponse } from "../models/eft/profile/ISearchFriendResponse";
-import { IValidateNicknameRequestData } from "../models/eft/profile/IValidateNicknameRequestData";
-import { HttpResponseUtil } from "../utils/HttpResponseUtil";
-import { TimeUtil } from "../utils/TimeUtil";
+import { ProfileController } from "@spt/controllers/ProfileController";
+import { ProfileHelper } from "@spt/helpers/ProfileHelper";
+import { IEmptyRequestData } from "@spt/models/eft/common/IEmptyRequestData";
+import { IPmcData } from "@spt/models/eft/common/IPmcData";
+import { IGetBodyResponseData } from "@spt/models/eft/httpResponse/IGetBodyResponseData";
+import { INullResponseData } from "@spt/models/eft/httpResponse/INullResponseData";
+import { IGetMiniProfileRequestData } from "@spt/models/eft/launcher/IGetMiniProfileRequestData";
+import { IGetProfileStatusResponseData } from "@spt/models/eft/profile/GetProfileStatusResponseData";
+import { ICreateProfileResponse } from "@spt/models/eft/profile/ICreateProfileResponse";
+import { IGetOtherProfileRequest } from "@spt/models/eft/profile/IGetOtherProfileRequest";
+import { IGetOtherProfileResponse } from "@spt/models/eft/profile/IGetOtherProfileResponse";
+import { IGetProfileSettingsRequest } from "@spt/models/eft/profile/IGetProfileSettingsRequest";
+import { IProfileChangeNicknameRequestData } from "@spt/models/eft/profile/IProfileChangeNicknameRequestData";
+import { IProfileChangeVoiceRequestData } from "@spt/models/eft/profile/IProfileChangeVoiceRequestData";
+import { IProfileCreateRequestData } from "@spt/models/eft/profile/IProfileCreateRequestData";
+import { ISearchFriendRequestData } from "@spt/models/eft/profile/ISearchFriendRequestData";
+import { ISearchFriendResponse } from "@spt/models/eft/profile/ISearchFriendResponse";
+import { IValidateNicknameRequestData } from "@spt/models/eft/profile/IValidateNicknameRequestData";
+import { HttpResponseUtil } from "@spt/utils/HttpResponseUtil";
+import { TimeUtil } from "@spt/utils/TimeUtil";
 /** Handle profile related client events */
 export declare class ProfileCallbacks {
     protected httpResponse: HttpResponseUtil;
     protected timeUtil: TimeUtil;
     protected profileController: ProfileController;
-    constructor(httpResponse: HttpResponseUtil, timeUtil: TimeUtil, profileController: ProfileController);
+    protected profileHelper: ProfileHelper;
+    constructor(httpResponse: HttpResponseUtil, timeUtil: TimeUtil, profileController: ProfileController, profileHelper: ProfileHelper);
     /**
      * Handle client/game/profile/create
      */
-    createProfile(url: string, info: IProfileCreateRequestData, sessionID: string): IGetBodyResponseData<any>;
+    createProfile(url: string, info: IProfileCreateRequestData, sessionID: string): IGetBodyResponseData<ICreateProfileResponse>;
     /**
      * Handle client/game/profile/list
      * Get the complete player profile (scav + pmc character)
@@ -60,11 +65,16 @@ export declare class ProfileCallbacks {
      * Handle client/profile/status
      * Called when creating a character when choosing a character face/voice
      */
-    getProfileStatus(url: string, info: IEmptyRequestData, sessionID: string): IGetBodyResponseData<GetProfileStatusResponseData>;
+    getProfileStatus(url: string, info: IEmptyRequestData, sessionID: string): IGetBodyResponseData<IGetProfileStatusResponseData>;
+    /**
+     * Handle client/profile/view
+     * Called when viewing another players profile
+     */
+    getOtherProfile(url: string, request: IGetOtherProfileRequest, sessionID: string): IGetBodyResponseData<IGetOtherProfileResponse>;
     /**
      * Handle client/profile/settings
      */
-    getProfileSettings(url: string, info: IGetProfileSettingsRequest, sessionId: string): IGetBodyResponseData<string>;
+    getProfileSettings(url: string, info: IGetProfileSettingsRequest, sessionId: string): IGetBodyResponseData<boolean>;
     /**
      * Handle client/game/profile/search
      */

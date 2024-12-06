@@ -1,9 +1,8 @@
+import { ILogger } from "@spt/models/spt/utils/ILogger";
+import { DatabaseServer } from "@spt/servers/DatabaseServer";
+import { LocaleService } from "@spt/services/LocaleService";
+import { RandomUtil } from "@spt/utils/RandomUtil";
 import { I18n } from "i18n";
-import { ILocaleConfig } from "../models/spt/config/ILocaleConfig";
-import { ILogger } from "../models/spt/utils/ILogger";
-import { DatabaseServer } from "../servers/DatabaseServer";
-import { RandomUtil } from "../utils/RandomUtil";
-import { LocaleService } from "./LocaleService";
 /**
  * Handles translating server text into different langauges
  */
@@ -12,7 +11,6 @@ export declare class LocalisationService {
     protected randomUtil: RandomUtil;
     protected databaseServer: DatabaseServer;
     protected localeService: LocaleService;
-    protected localeConfig: ILocaleConfig;
     protected i18n: I18n;
     constructor(logger: ILogger, randomUtil: RandomUtil, databaseServer: DatabaseServer, localeService: LocaleService);
     /**

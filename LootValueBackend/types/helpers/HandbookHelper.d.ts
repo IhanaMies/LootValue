@@ -1,4 +1,9 @@
-import { DatabaseServer } from "../servers/DatabaseServer";
+import { IHandbookCategory } from "@spt/models/eft/common/tables/IHandbookBase";
+import { IItem } from "@spt/models/eft/common/tables/IItem";
+import { IItemConfig } from "@spt/models/spt/config/IItemConfig";
+import { ConfigServer } from "@spt/servers/ConfigServer";
+import { DatabaseService } from "@spt/services/DatabaseService";
+import { ICloner } from "@spt/utils/cloners/ICloner";
 declare class LookupItem<T, I> {
     readonly byId: Map<string, T>;
     readonly byParent: Map<string, I[]>;
@@ -10,21 +15,25 @@ export declare class LookupCollection {
     constructor();
 }
 export declare class HandbookHelper {
-    protected databaseServer: DatabaseServer;
+    protected databaseService: DatabaseService;
+    protected configServer: ConfigServer;
+    protected cloner: ICloner;
+    protected itemConfig: IItemConfig;
     protected lookupCacheGenerated: boolean;
     protected handbookPriceCache: LookupCollection;
-    constructor(databaseServer: DatabaseServer);
+    constructor(databaseService: DatabaseService, configServer: ConfigServer, cloner: ICloner);
     /**
      * Create an in-memory cache of all items with associated handbook price in handbookPriceCache class
      */
     hydrateLookup(): void;
     /**
      * Get price from internal cache, if cache empty look up price directly in handbook (expensive)
-     * If no values found, return 1
-     * @param tpl item tpl to look up price for
+     * If no values found, return 0
+     * @param tpl Item tpl to look up price for
      * @returns price in roubles
      */
     getTemplatePrice(tpl: string): number;
+    getTemplatePriceForItems(items: IItem[]): number;
     /**
      * Get all items in template with the given parent category
      * @param parentId
@@ -57,5 +66,6 @@ export declare class HandbookHelper {
      * @returns currency count in desired type
      */
     fromRUB(roubleCurrencyCount: number, currencyTypeTo: string): number;
+    getCategoryById(handbookId: string): IHandbookCategory;
 }
 export {};
