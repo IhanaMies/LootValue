@@ -61,7 +61,7 @@ class Mod implements IPreSptLoadMod
         );        
     }
 
-	private getItemLowestFleaPrice(templateId: string): number {
+	private getItemLowestFleaPrice(templateId: string) {
 		let offers: IRagfairOffer[] = this.offerService.getOffersOfType(templateId);
 
 		if (offers && offers.length > 0) {
@@ -74,7 +74,7 @@ class Mod implements IPreSptLoadMod
 				return(offers.sort((a,b) => a.summaryCost - b.summaryCost)[0]).summaryCost;
 		}
 
-		return null;
+		return -1; //-1 means no price available
 	}
 
 	private sellItemToTrader(sessionId: string, itemId: string, traderId: string, price: number): boolean {
