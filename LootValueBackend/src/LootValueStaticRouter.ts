@@ -74,7 +74,7 @@ class Mod implements IPreSptLoadMod
 				return(offers.sort((a,b) => a.summaryCost - b.summaryCost)[0]).summaryCost;
 		}
 
-		return -1; //-1 means no price from flea
+		return null;
 	}
 
 	private sellItemToTrader(sessionId: string, itemId: string, traderId: string, price: number): boolean {

@@ -48,24 +48,30 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\SharedDlls\0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Shared\Assembly-CSharp.dll</HintPath>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\SharedDlls\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx, Version=5.4.21.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\SharedDlls\BepInEx.dll</HintPath>
     </Reference>
+    <Reference Include="BepInEx.Harmony">
+      <HintPath>..\SharedDlls\BepInEx.Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="BepInEx.Preloader">
+      <HintPath>..\SharedDlls\BepInEx.Preloader.dll</HintPath>
+    </Reference>
     <Reference Include="Comfort, Version=1.0.0.4, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\SharedDlls\Comfort.dll</HintPath>
     </Reference>
-    <Reference Include="Comfort.Unity, Version=1.0.0.4, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="Crc32.NET, Version=1.0.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\SharedDlls\Crc32.NET.dll</HintPath>
     </Reference>
-    <Reference Include="ItemComponent.Types, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" />
+    <Reference Include="ItemComponent.Types, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\SharedDlls\ItemComponent.Types.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -81,6 +87,12 @@
     </Reference>
     <Reference Include="spt-core">
       <HintPath>..\SharedDlls\spt-core.dll</HintPath>
+    </Reference>
+    <Reference Include="spt-custom">
+      <HintPath>..\SharedDlls\spt-custom.dll</HintPath>
+    </Reference>
+    <Reference Include="spt-debugging">
+      <HintPath>..\SharedDlls\spt-debugging.dll</HintPath>
     </Reference>
     <Reference Include="spt-reflection">
       <HintPath>..\SharedDlls\spt-reflection.dll</HintPath>
@@ -133,7 +145,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "I:\Pelit\EFT SPT 3.10\BepInEx\plugins\LootValue\"
+    <PostBuildEvent>XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "I:\Pelit\EFT SPT 3.11\BepInEx\plugins\IhanaMies-LootValue.dll"
 
 XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "$(SolutionDir)\Releases\BepInEx\plugins\LootValue\"</PostBuildEvent>
   </PropertyGroup>

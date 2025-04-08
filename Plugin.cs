@@ -6,8 +6,8 @@ using EFT.InventoryLogic;
 using EFT.UI;
 using SPT.Reflection.Patching;
 using SPT.Reflection.Utils;
-using CurrencyUtil = GClass2867;
-using FleaRequirement = GClass2059;
+using CurrencyUtil = GClass2934;
+using FleaRequirement = GClass2102;
 using static LootValue.Globals;
 using BepInEx;
 using BepInEx.Logging;
@@ -29,7 +29,7 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "4.0.0";
+        public const string pluginVersion = "5.0.0";
 
 		private void Awake()
 		{
@@ -164,7 +164,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		public static List<string> blacklistedTraders = new List<string>();
 
 		public static bool HasRaidStarted()
-		{
+		{			
 			bool? inRaid = Singleton<AbstractGame>.Instance?.InRaid;
 			return inRaid.HasValue && inRaid.Value;
 		}
@@ -453,7 +453,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		{
 			TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
 
-			var @class = new GClass2287.Class1895();
+			var @class = new GClass2332.Class1936();
 			@class.source = new TaskCompletionSource<bool>();
 
 			var itemRef = new EFT.Trading.TradingItemReference
@@ -462,7 +462,12 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				Count = item.StackObjectsCount
 			};
 
-			Session.ConfirmSell(tc.Id, new EFT.Trading.TradingItemReference[1] { itemRef }, bestTraderOffer.Price, new Callback(@class.method_0));
+			Session.ConfirmSell(
+				tc.Id,
+				new EFT.Trading.TradingItemReference[1] { itemRef },
+				bestTraderOffer.Price,
+				new Callback(@class.method_0)
+			);
 			Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.TradeOperationComplete);
 		}
 

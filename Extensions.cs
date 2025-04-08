@@ -28,7 +28,7 @@ namespace LootValue
 		private static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
 
 		private static readonly FieldInfo SupplyDataField =
-			typeof(TraderClass).GetField("supplyData_0", BindingFlags.NonPublic | BindingFlags.Instance);
+			typeof(TraderClass).GetField("supplyData_0", BindingFlags.Public | BindingFlags.Instance);
 
 		public static SupplyData GetSupplyData(this TraderClass trader) =>
 			SupplyDataField.GetValue(trader) as SupplyData;
@@ -38,7 +38,7 @@ namespace LootValue
 
 		public static async void UpdateSupplyData(this TraderClass trader)
 		{
-			Result<SupplyData> result = await Session.GetSupplyData(trader.Id);
+			Result<SupplyData> result = await Session.GetSupplyData(trader.Id);			
 
 			if (result.Failed)
 				return;
