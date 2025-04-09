@@ -38,11 +38,10 @@ namespace LootValue
 		{
 			string response = await QueryPrice(templateId);
 
-			if (!string.IsNullOrEmpty(response))
+			if (!string.IsNullOrEmpty(response) && response != "null")
 			{
 				double price = double.Parse(response);
 
-				//-1 response means no flea price available
 				if (price < 0)
 				{
 					cache.Remove(templateId);

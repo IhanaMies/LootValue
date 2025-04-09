@@ -29,7 +29,7 @@ namespace LootValue
         // BepinEx
         public const string pluginGuid = "IhanaMies.LootValue";
         public const string pluginName = "LootValue";
-        public const string pluginVersion = "5.0.0";
+        public const string pluginVersion = "5.0.2";
 
 		private void Awake()
 		{
@@ -543,6 +543,9 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 
 			if (hoveredItem != null && Session.Profile.Examined(hoveredItem) && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid))
 			{
+				if (hoveredItem.Owner.OwnerType != EOwnerType.Profile && hoveredItem.Owner.GetType() == typeof(TraderControllerClass))
+					return;
+
 				tooltip = __instance;
 
 				TraderOffer bestTraderOffer = GetBestTraderOffer(hoveredItem);
@@ -556,7 +559,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					{
 						double? fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(mod.TemplateId)).Result;
 
-						if (fleaPrice.HasValue)
+						if (fleaPrice.HasValue && fleaPrice.Value > 0)
 						{
 							isFleaEligible = true;
 							totalFleaPrice += fleaPrice.Value * mod.StackObjectsCount;
@@ -570,7 +573,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 				{
 					double? fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(hoveredItem.TemplateId)).Result;
 
-					if (fleaPrice.HasValue)
+					if (fleaPrice.HasValue && fleaPrice.Value > 0)
 					{
 						isFleaEligible = true;
 						lowestFleaOffer = fleaPrice.Value * hoveredItem.StackObjectsCount;

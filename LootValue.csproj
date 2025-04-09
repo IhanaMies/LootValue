@@ -145,8 +145,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "I:\Pelit\EFT SPT 3.11\BepInEx\plugins\IhanaMies-LootValue.dll"
+    <PostBuildEvent>echo f | XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "I:\Pelit\EFT SPT 3.11\BepInEx\plugins\IhanaMies-LootValue.dll"
 
-XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "$(SolutionDir)\Releases\BepInEx\plugins\LootValue\"</PostBuildEvent>
+echo f | XCOPY /Y /R "$(SolutionDir)\bin\$(ConfigurationName)\LootValue.dll" "$(SolutionDir)\Releases\BepInEx\plugins\IhanaMies-LootValue.dll"</PostBuildEvent>
   </PropertyGroup>
 </Project>
