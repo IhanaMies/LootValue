@@ -20,6 +20,7 @@ using Comfort.Common;
 using System.Linq;
 using UnityEngine.EventSystems;
 using static EFT.Player;
+using System.Collections.Concurrent;
 
 namespace LootValue
 {
@@ -81,6 +82,8 @@ namespace LootValue
 			}
 		}
 
+		internal static ConfigEntry<bool> UseFleaPrices;
+		internal static ConfigEntry<bool> UseAsyncPrices;
 		internal static ConfigEntry<bool> UseCustomColours;
 		internal static ConfigEntry<string> CustomColours;
 		internal static ConfigEntry<bool> EnableQuickSell;
@@ -101,6 +104,9 @@ namespace LootValue
 
 		private void SetupConfig()
 		{
+
+			UseFleaPrices = Config.Bind("Flea", "Enable Flea Prices", true); 
+			UseAsyncPrices = Config.Bind("Flea", "Use a parallel price acquisition", false, "(Fika compatible)");
 			OneButtonQuickSell = Config.Bind("Quick Sell", "One button quick sell", false, "Selling is done using LMB only. Attempts to sell to flea and then to trader if the option is enabled");
 			OneButtonQuickSellFlea = Config.Bind("Quick Sell", "Sell to trader if no flea slots left", true, "Does nothing if 'Ignore flea max offer count' is enabled");
 			OnlyShowTotalValue = Config.Bind("Quick Sell", "Only show total value", false);
@@ -162,6 +168,7 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		public static Item hoveredItem;
 		public static SimpleTooltip tooltip;
 		public static List<string> blacklistedTraders = new List<string>();
+		public static ConcurrentDictionary<string, Task<double?>> _activeRequests = new();
 
 		public static bool HasRaidStarted()
 		{			
@@ -349,7 +356,8 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 								TraderOffer bestTraderOffer = GetBestTraderOffer(item);
 								double? fleaPrice = null;
 
-								fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(item.TemplateId)).Result;
+								if (item.CanSellOnRagfair)
+									fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(item.TemplateId)).Result;					
 
 								if (bestTraderOffer != null)
 								{
@@ -481,7 +489,10 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			if (!Session.RagFair.Available)
 				return;
 
-			double? fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(item.TemplateId)).Result;
+			double? fleaPrice = null;
+
+			if (item.CanSellOnRagfair)
+				fleaPrice = Task.Run(() => FleaPriceCache.FetchPrice(item.TemplateId)).Result;
 
 			if (Session.RagFair.Available && fleaPrice.HasValue)
 			{
@@ -535,6 +546,13 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 		private static void Prefix(ref string text, ref Vector2? offset, ref float delay, SimpleTooltip __instance)
 		{
 			delay = 0;
+			tooltip = __instance;
+			if (LootValueMod.UseAsyncPrices.Value)
+			{
+				if (isValidItem(hoveredItem))
+					text += "\nLoading...";
+				return;
+			}
 
 			bool isFleaEligible = false;
 			double lowestFleaOffer = 0;
@@ -545,8 +563,6 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 			{
 				if (hoveredItem.Owner.OwnerType != EOwnerType.Profile && hoveredItem.Owner.GetType() == typeof(TraderControllerClass))
 					return;
-
-				tooltip = __instance;
 
 				TraderOffer bestTraderOffer = GetBestTraderOffer(hoveredItem);
 
@@ -623,5 +639,140 @@ The third is marked as the ultimate color. Anything over 10000 rubles would be w
 					text += $" Total: {totalValue.FormatNumber()}";
 			}
 		}
+
+                private static bool isValidItem(Item hovered_Item)
+		{
+			if (hoveredItem == null) return false;
+			if (hoveredItem.TemplateId != hovered_Item?.TemplateId || hoveredItem.Id != hovered_Item?.Id) return false;
+			bool inRaidAndCanShowInRaid = HasRaidStarted() && LootValueMod.showFleaPricesInRaid.Value;
+			if (Session.Profile.Examined(hoveredItem) && LootValueMod.showPrices.Value && (!HasRaidStarted() || inRaidAndCanShowInRaid))
+			{
+				if (hoveredItem.Owner.OwnerType != EOwnerType.Profile && hoveredItem.Owner.GetType() == typeof(TraderControllerClass))
+					return false;
+				return true;
+			}
+			return false;
+		} 
+
+		[PatchPostfix]
+		private static async void Postfix(string text)
+		{
+			Item hovered_Item = hoveredItem;
+			try
+			{
+				if (!LootValueMod.UseAsyncPrices.Value)
+					return;
+				bool isFleaEligible = false;
+				double lowestFleaOffer = 0;              
+
+				if (!isValidItem(hovered_Item))
+					return;            
+
+				TraderOffer bestTraderOffer = GetBestTraderOffer(hovered_Item);
+
+				//For weapons we want to fetch each mods flea price, if eligible
+				if (hovered_Item is Weapon weapon)
+				{
+					double totalFleaPrice = 0;
+
+					var eligibleMods = weapon.Mods.Where(mod => mod.CanSellOnRagfair).ToList();
+
+					var results = await Task.WhenAll(
+						eligibleMods.Select(async mod =>
+						{
+							var price = await _activeRequests.GetOrAdd(
+								mod.TemplateId,
+								key => FleaPriceCache.FetchPrice(key) // running loading if no key
+							);
+							_activeRequests.TryRemove(mod.TemplateId, out _);
+							return (mod, price);
+						})
+					);                 
+
+					foreach (var (mod, price) in results)
+					{
+						if (price.HasValue && price.Value > 0)
+						{
+							isFleaEligible = true;
+							totalFleaPrice += price.Value * mod.StackObjectsCount;
+						}
+					}                  
+
+					if (totalFleaPrice > 0)
+						lowestFleaOffer = totalFleaPrice;
+				}
+				else
+				{
+					double? fleaPrice = 0;
+
+					fleaPrice = await _activeRequests.GetOrAdd(
+						hovered_Item.TemplateId,
+						key => FleaPriceCache.FetchPrice(key) // running loading if no key
+					);
+
+					_activeRequests.TryRemove(hovered_Item.TemplateId, out _);
+
+					if (fleaPrice.HasValue && fleaPrice.Value > 0)
+					{
+						isFleaEligible = true;
+						lowestFleaOffer = fleaPrice.Value * hovered_Item.StackObjectsCount;
+					}
+				}
+
+				int fleaPricePerSlot = 0, traderPricePerSlot = 0;
+
+				var size = hovered_Item.CalculateCellSize();
+				int slots = size.X * size.Y;
+
+				if (isFleaEligible)
+					fleaPricePerSlot = (int)Math.Round(lowestFleaOffer / slots);
+
+				if (bestTraderOffer != null)
+				{
+					double totalTraderPrice = bestTraderOffer.Price;
+					traderPricePerSlot = (int)Math.Round(totalTraderPrice / slots);
+
+					text += customSetText(traderPricePerSlot, fleaPricePerSlot, totalTraderPrice, slots, bestTraderOffer.TraderName);
+				}
+
+				if (isFleaEligible)
+					text += customSetText(fleaPricePerSlot, traderPricePerSlot, lowestFleaOffer, slots, "Flea");
+
+			}
+			catch (Exception ex)
+			{
+				logger.LogInfo($"Error due getting prices async (Postfix): {ex.Message}");
+			}
+			finally
+			{
+				if (isValidItem(hovered_Item) && tooltip != null)
+					tooltip.SetText(text.Replace("\nLoading...", ""));
+			}
+		}
+
+		private static string customSetText(int valuePerSlotA, int valuePerSlotB, double totalValue, int slots, string buyer)
+		{
+			string text = "";
+			string perSlotColor = SlotColoring.GetColorFromValuePerSlots(valuePerSlotA);
+			string highlightText;
+
+			if (valuePerSlotA > valuePerSlotB)
+				highlightText = $"<color=#ffffff>{buyer}</color>";
+			else
+				highlightText = buyer;
+
+			if (LootValueMod.OnlyShowTotalValue.Value)
+			{
+				text += $"<br>{highlightText}: <color={perSlotColor}>{totalValue.FormatNumber()}</color>";
+			}
+			else
+			{
+				text += $"<br>{highlightText}: <color={perSlotColor}>{valuePerSlotA.FormatNumber()}</color>";
+
+				if (slots > 1)
+					text += $" Total: {totalValue.FormatNumber()}";
+			}
+			return text;
+		}			
 	}
 }
